@@ -6,7 +6,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const state = { user: null, memories: [], previewUrls: [], selectedMemory: null };
+const state = { user: null, memories: [], previewUrls: [], selectedMemory: null, renderVersion: 0 };
 const byId = (id) => document.getElementById(id);
 
 const authPanel = byId('auth-panel');
@@ -74,6 +74,7 @@ async function signedPhotoUrl(path) {
 }
 
 function setSignedOut() {
+  state.renderVersion += 1;
   state.user = null;
   state.memories = [];
   authPanel.hidden = false;
@@ -143,6 +144,7 @@ async function createMemoryCard(memory) {
 }
 
 async function renderMemories() {
+  const renderVersion = ++state.renderVersion;
   const memories = filteredMemories();
   memoryGrid.replaceChildren();
   byId('memory-count').textContent = `${memories.length}枚`;
@@ -155,7 +157,8 @@ async function renderMemories() {
 
   galleryStatus.hidden = true;
   const cards = await Promise.all(memories.map(createMemoryCard));
-  memoryGrid.append(...cards);
+  if (renderVersion !== state.renderVersion) return;
+  memoryGrid.replaceChildren(...cards);
 }
 
 function openPhoto(memory, imageUrl) {
