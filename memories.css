@@ -83,16 +83,10 @@ input:focus, textarea:focus { outline: 2px solid var(--cp-accent); outline-offse
 .gallery-section { padding-top: 64px; }
 .filters { display: grid; grid-template-columns: 180px minmax(200px, 1fr) auto; align-items: end; gap: 12px; padding: 18px; border: 1px solid var(--cp-border); background: var(--cp-surface); }
 .gallery-status { margin: 24px 0; color: var(--cp-text-muted); }
-.memory-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.memory-card { overflow: hidden; border: 1px solid var(--cp-border); border-radius: 8px; background: var(--cp-surface); }
-.memory-photo-button { display: block; width: 100%; aspect-ratio: 4 / 3; padding: 0; border: 0; background: var(--cp-surface-soft); }
+.memory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
+.memory-card { overflow: hidden; min-width: 0; border: 1px solid var(--cp-border); border-radius: 6px; background: var(--cp-surface); }
+.memory-photo-button { display: block; width: 100%; aspect-ratio: 1; padding: 0; border: 0; background: var(--cp-surface-soft); }
 .memory-photo-button img { width: 100%; height: 100%; object-fit: cover; }
-.memory-card-body { padding: 16px; }
-.memory-card-body strong { display: block; font-size: 1.05rem; }
-.memory-card-body time { color: var(--cp-text-muted); font-size: .78rem; }
-.memory-card-body p { min-height: 3.2em; margin: 10px 0 14px; color: var(--cp-text-muted); font-size: .88rem; white-space: pre-wrap; }
-.memory-card-actions { display: flex; justify-content: flex-end; }
-.memory-card-actions button { border: 0; background: transparent; color: var(--cp-link); font-weight: 700; }
 dialog { max-width: min(720px, calc(100% - 32px)); border: 1px solid var(--cp-border); border-radius: 8px; background: var(--cp-surface); color: var(--cp-text); padding: 0; box-shadow: var(--cp-shadow); }
 dialog::backdrop { background: var(--cp-overlay); }
 .photo-dialog { width: min(920px, calc(100% - 32px)); }
@@ -102,6 +96,7 @@ dialog::backdrop { background: var(--cp-overlay); }
 .dialog-caption { padding: 20px; }
 .dialog-caption span { display: block; color: var(--cp-text-muted); font-size: .8rem; }
 .dialog-caption p { margin-bottom: 0; white-space: pre-wrap; }
+.dialog-caption .secondary-button { margin-top: 18px; }
 .edit-dialog { width: min(560px, calc(100% - 32px)); padding: 24px; }
 .edit-dialog form { display: grid; gap: 16px; }
 .dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
@@ -112,7 +107,7 @@ dialog::backdrop { background: var(--cp-overlay); }
   .upload-form { grid-template-columns: 1fr; }
   .photo-picker { min-height: 150px; }
   .filters { grid-template-columns: 1fr; }
-  .memory-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .memory-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
 }
 @media (max-width: 480px) {
   .album-nav, .album-intro, .album-main { width: min(100% - 28px, 1120px); }
@@ -121,7 +116,7 @@ dialog::backdrop { background: var(--cp-overlay); }
   .section-heading { align-items: start; flex-direction: column; gap: 8px; }
   .memory-fields { grid-template-columns: 1fr; }
   .wide-field { grid-column: auto; }
-  .memory-grid { grid-template-columns: 1fr; }
+  .memory-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   .button-row > button { flex: 1 1 auto; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }

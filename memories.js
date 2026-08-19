@@ -6,7 +6,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const state = { user: null, memories: [], previewUrls: [] };
+const state = { user: null, memories: [], previewUrls: [], selectedMemory: null };
 const byId = (id) => document.getElementById(id);
 
 const authPanel = byId('auth-panel');
@@ -138,25 +138,7 @@ async function createMemoryCard(memory) {
   }
   photoButton.append(image);
   photoButton.addEventListener('click', () => openPhoto(memory, image.src));
-
-  const body = document.createElement('div');
-  body.className = 'memory-card-body';
-  const location = document.createElement('strong');
-  location.textContent = memory.location;
-  const date = document.createElement('time');
-  date.dateTime = memory.taken_on;
-  date.textContent = formatDate(memory.taken_on);
-  const comment = document.createElement('p');
-  comment.textContent = memory.comment || 'コメントなし';
-  const actions = document.createElement('div');
-  actions.className = 'memory-card-actions';
-  const editButton = document.createElement('button');
-  editButton.type = 'button';
-  editButton.textContent = '編集';
-  editButton.addEventListener('click', () => openEdit(memory));
-  actions.append(editButton);
-  body.append(location, date, comment, actions);
-  article.append(photoButton, body);
+  article.append(photoButton);
   return article;
 }
 
@@ -177,6 +159,7 @@ async function renderMemories() {
 }
 
 function openPhoto(memory, imageUrl) {
+  state.selectedMemory = memory;
   byId('dialog-image').src = imageUrl;
   byId('dialog-image').alt = `${memory.location}の思い出`;
   byId('dialog-location').textContent = memory.location;
@@ -316,6 +299,11 @@ byId('upload-form').addEventListener('submit', uploadMemory);
 byId('edit-form').addEventListener('submit', updateMemory);
 byId('delete-button').addEventListener('click', deleteMemory);
 byId('photo-dialog-close').addEventListener('click', () => byId('photo-dialog').close());
+byId('photo-edit-button').addEventListener('click', () => {
+  if (!state.selectedMemory) return;
+  byId('photo-dialog').close();
+  openEdit(state.selectedMemory);
+});
 byId('edit-dialog-close').addEventListener('click', () => byId('edit-dialog').close());
 byId('filter-date').addEventListener('change', renderMemories);
 byId('filter-location').addEventListener('input', renderMemories);

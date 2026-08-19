@@ -68,9 +68,9 @@
       --cp-highlight: rgba(253, 142, 161, 0.12);
     }
   </style>
-  <link rel="stylesheet" href="memories.css?v=20260819-2">
+  <link rel="stylesheet" href="memories.css?v=20260819-3">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" defer></script>
-  <script src="memories.js?v=20260819-2" defer></script>
+  <script src="memories.js?v=20260819-3" defer></script>
 </head>
 <body>
   <header class="album-header">
@@ -154,7 +154,10 @@
   <dialog class="photo-dialog" id="photo-dialog">
     <button class="dialog-close" type="button" id="photo-dialog-close" aria-label="拡大表示を閉じる">×</button>
     <img id="dialog-image" alt="">
-    <div class="dialog-caption"><strong id="dialog-location"></strong><span id="dialog-date"></span><p id="dialog-comment"></p></div>
+    <div class="dialog-caption">
+      <strong id="dialog-location"></strong><span id="dialog-date"></span><p id="dialog-comment"></p>
+      <button class="secondary-button" type="button" id="photo-edit-button">詳細を編集</button>
+    </div>
   </dialog>
 
   <dialog class="edit-dialog" id="edit-dialog">
