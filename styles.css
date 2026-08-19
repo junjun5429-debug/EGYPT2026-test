@@ -42,6 +42,17 @@ img { display: block; max-width: 100%; }
 .topbar-meta { display: flex; gap: 28px; font-size: .78rem; font-weight: 700; letter-spacing: .1em; }
 .topbar-link { padding-bottom: 2px; border-bottom: 1px solid var(--cp-sheen); text-decoration: none; }
 .topbar-link:hover { border-color: var(--cp-accent-fg); }
+.test-site-banner {
+  position: relative;
+  z-index: 3;
+  padding: 9px var(--page-gutter);
+  background: var(--cp-warning);
+  color: #242424;
+  font-size: .9rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-align: center;
+}
 .hero-content {
   position: relative;
   z-index: 2;
