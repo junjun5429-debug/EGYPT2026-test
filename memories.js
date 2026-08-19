@@ -121,13 +121,14 @@ function filteredMemories() {
 }
 
 async function createMemoryCard(memory) {
+  const isOwner = memory.user_id === state.user.id;
   const article = document.createElement('article');
-  article.className = 'memory-card';
+  article.className = `memory-card ${isOwner ? 'is-owner' : 'is-shared'}`;
 
   const photoButton = document.createElement('button');
   photoButton.type = 'button';
   photoButton.className = 'memory-photo-button';
-  photoButton.setAttribute('aria-label', `${memory.location}の写真を拡大表示`);
+  photoButton.setAttribute('aria-label', `${isOwner ? '自分' : 'ほかの人'}が保存した${memory.location}の写真を拡大表示`);
 
   const image = document.createElement('img');
   image.alt = `${memory.location}の思い出`;
@@ -137,7 +138,11 @@ async function createMemoryCard(memory) {
   } catch {
     image.alt = '写真を表示できません';
   }
-  photoButton.append(image);
+  const ownerBadge = document.createElement('span');
+  ownerBadge.className = 'memory-owner-badge';
+  ownerBadge.textContent = isOwner ? '自分' : 'ほかの人';
+  ownerBadge.setAttribute('aria-hidden', 'true');
+  photoButton.append(image, ownerBadge);
   photoButton.addEventListener('click', () => openPhoto(memory, image.src));
   article.append(photoButton);
   return article;
