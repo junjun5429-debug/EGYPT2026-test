@@ -68,9 +68,9 @@
       --cp-highlight: rgba(253, 142, 161, 0.12);
     }
   </style>
-  <link rel="stylesheet" href="memories.css?v=20260819-1">
+  <link rel="stylesheet" href="memories.css?v=20260819-2">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" defer></script>
-  <script src="memories.js?v=20260819-1" defer></script>
+  <script src="memories.js?v=20260819-2" defer></script>
 </head>
 <body>
   <header class="album-header">
@@ -120,9 +120,10 @@
         </div>
         <form class="upload-form" id="upload-form">
           <label class="photo-picker" for="photo-file">
-            <input id="photo-file" type="file" accept="image/jpeg,image/png,image/webp" required>
-            <img id="photo-preview" alt="選択した写真のプレビュー" hidden>
-            <span id="photo-prompt"><strong>写真を選択</strong><small>タップまたはクリック</small></span>
+            <input id="photo-file" type="file" accept="image/jpeg,image/png,image/webp" multiple required>
+            <div class="photo-preview-grid" id="photo-preview-grid" aria-label="選択した写真" hidden></div>
+            <span class="photo-selection-summary" id="photo-selection-summary" hidden></span>
+            <span id="photo-prompt"><strong>写真を選択</strong><small>複数選択できます</small></span>
           </label>
           <div class="memory-fields">
             <label>撮影日<input id="memory-date" type="date" required></label>

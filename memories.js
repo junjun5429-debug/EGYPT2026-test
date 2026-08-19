@@ -6,7 +6,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const state = { user: null, memories: [], previewUrl: null };
+const state = { user: null, memories: [], previewUrls: [] };
 const byId = (id) => document.getElementById(id);
 
 const authPanel = byId('auth-panel');
@@ -37,6 +37,34 @@ function safeFileName(name) {
 function authenticatedPhotoUrl(path) {
   const encodedPath = path.split('/').map(encodeURIComponent).join('/');
   return `${SUPABASE_URL}/storage/v1/object/authenticated/${BUCKET_NAME}/${encodedPath}`;
+}
+
+function clearPhotoPreviews() {
+  state.previewUrls.forEach((url) => URL.revokeObjectURL(url));
+  state.previewUrls = [];
+  byId('photo-preview-grid').replaceChildren();
+  byId('photo-preview-grid').hidden = true;
+  byId('photo-selection-summary').hidden = true;
+  byId('photo-prompt').hidden = false;
+}
+
+function renderPhotoPreviews(files) {
+  clearPhotoPreviews();
+  if (!files.length) return;
+
+  const previews = files.map((file) => {
+    const image = document.createElement('img');
+    const url = URL.createObjectURL(file);
+    state.previewUrls.push(url);
+    image.src = url;
+    image.alt = file.name;
+    return image;
+  });
+  byId('photo-preview-grid').append(...previews);
+  byId('photo-preview-grid').hidden = false;
+  byId('photo-selection-summary').textContent = `${files.length}枚を選択中`;
+  byId('photo-selection-summary').hidden = false;
+  byId('photo-prompt').hidden = true;
 }
 
 async function signedPhotoUrl(path) {
@@ -168,46 +196,57 @@ function openEdit(memory) {
 
 async function uploadMemory(event) {
   event.preventDefault();
-  const file = byId('photo-file').files[0];
-  if (!file) return showMessage(uploadMessage, '写真を選択してください。', 'error');
-  if (!ALLOWED_TYPES.has(file.type)) return showMessage(uploadMessage, 'JPEG、PNG、WebPを選択してください。', 'error');
-  if (file.size > MAX_FILE_SIZE) return showMessage(uploadMessage, '写真は10 MB以下にしてください。', 'error');
+  const files = [...byId('photo-file').files];
+  if (!files.length) return showMessage(uploadMessage, '写真を選択してください。', 'error');
+  const unsupportedFile = files.find((file) => !ALLOWED_TYPES.has(file.type));
+  if (unsupportedFile) return showMessage(uploadMessage, `${unsupportedFile.name}: JPEG、PNG、WebPを選択してください。`, 'error');
+  const oversizedFile = files.find((file) => file.size > MAX_FILE_SIZE);
+  if (oversizedFile) return showMessage(uploadMessage, `${oversizedFile.name}: 写真は10 MB以下にしてください。`, 'error');
 
   const uploadButton = byId('upload-button');
   uploadButton.disabled = true;
-  showMessage(uploadMessage, '写真をアップロードしています。');
-  const path = `${state.user.id}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
+  const failures = [];
+  let savedCount = 0;
 
   try {
-    const { error: storageError } = await client.storage.from(BUCKET_NAME).upload(path, file, {
-      cacheControl: '3600',
-      contentType: file.type,
-      upsert: false
-    });
-    if (storageError) throw storageError;
+    for (const [index, file] of files.entries()) {
+      showMessage(uploadMessage, `${files.length}枚中${index + 1}枚目をアップロードしています。`);
+      const path = `${state.user.id}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
 
-    const { error: databaseError } = await client.from(TABLE_NAME).insert({
-      user_id: state.user.id,
-      storage_path: path,
-      photo_url: authenticatedPhotoUrl(path),
-      taken_on: byId('memory-date').value,
-      location: byId('memory-location').value.trim(),
-      comment: byId('memory-comment').value.trim() || null
-    });
-    if (databaseError) {
-      await client.storage.from(BUCKET_NAME).remove([path]);
-      throw databaseError;
+      try {
+        const { error: storageError } = await client.storage.from(BUCKET_NAME).upload(path, file, {
+          cacheControl: '3600',
+          contentType: file.type,
+          upsert: false
+        });
+        if (storageError) throw storageError;
+
+        const { error: databaseError } = await client.from(TABLE_NAME).insert({
+          user_id: state.user.id,
+          storage_path: path,
+          photo_url: authenticatedPhotoUrl(path),
+          taken_on: byId('memory-date').value,
+          location: byId('memory-location').value.trim(),
+          comment: byId('memory-comment').value.trim() || null
+        });
+        if (databaseError) {
+          await client.storage.from(BUCKET_NAME).remove([path]);
+          throw databaseError;
+        }
+        savedCount += 1;
+      } catch (error) {
+        failures.push(`${file.name}: ${error.message}`);
+      }
     }
 
     byId('upload-form').reset();
-    byId('photo-preview').hidden = true;
-    byId('photo-prompt').hidden = false;
-    if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
-    state.previewUrl = null;
-    showMessage(uploadMessage, 'アルバムに保存しました。', 'success');
-    await loadMemories();
-  } catch (error) {
-    showMessage(uploadMessage, `保存できませんでした: ${error.message}`, 'error');
+    clearPhotoPreviews();
+    if (savedCount) await loadMemories();
+    if (failures.length) {
+      showMessage(uploadMessage, `${savedCount}枚を保存、${failures.length}枚は保存できませんでした。${failures.join(' / ')}`, 'error');
+    } else {
+      showMessage(uploadMessage, `${savedCount}枚をアルバムに保存しました。`, 'success');
+    }
   } finally {
     uploadButton.disabled = false;
   }
@@ -286,13 +325,7 @@ byId('clear-filters').addEventListener('click', () => {
   renderMemories();
 });
 byId('photo-file').addEventListener('change', (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-  if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
-  state.previewUrl = URL.createObjectURL(file);
-  byId('photo-preview').src = state.previewUrl;
-  byId('photo-preview').hidden = false;
-  byId('photo-prompt').hidden = true;
+  renderPhotoPreviews([...event.target.files]);
 });
 
 client.auth.onAuthStateChange((_event, session) => {
