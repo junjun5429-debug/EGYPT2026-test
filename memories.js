@@ -28,6 +28,15 @@ function formatDate(date) {
     .format(new Date(`${date}T00:00:00`));
 }
 
+function authorDisplay(name) {
+  if (!name) return 'メンバー';
+  return name.includes('@') ? name.split('@')[0] : name;
+}
+
+function currentUserName() {
+  return state.user.user_metadata?.name || state.user.email || 'メンバー';
+}
+
 function safeFileName(name) {
   const extension = name.split('.').pop().toLowerCase();
   const stem = name.slice(0, -(extension.length + 1)).replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 60) || 'photo';
@@ -95,7 +104,7 @@ async function loadMemories() {
   galleryStatus.textContent = '写真を読み込んでいます';
   const { data, error } = await client
     .from(TABLE_NAME)
-    .select('id,user_id,storage_path,photo_url,taken_on,location,comment,created_at')
+    .select('id,user_id,author_name,storage_path,photo_url,taken_on,location,comment,created_at')
     .order('taken_on', { ascending: false })
     .order('created_at', { ascending: false });
 
@@ -113,22 +122,25 @@ async function loadMemories() {
 function filteredMemories() {
   const date = byId('filter-date').value;
   const location = byId('filter-location').value.trim().toLocaleLowerCase('ja');
+  const showOthers = byId('show-others').checked;
   return state.memories.filter((memory) => {
+    const matchesScope = showOthers || memory.user_id === state.user.id;
     const matchesDate = !date || memory.taken_on === date;
     const matchesLocation = !location || memory.location.toLocaleLowerCase('ja').includes(location);
-    return matchesDate && matchesLocation;
+    return matchesScope && matchesDate && matchesLocation;
   });
 }
 
 async function createMemoryCard(memory) {
   const isOwner = memory.user_id === state.user.id;
+  const authorLabel = isOwner ? '自分' : authorDisplay(memory.author_name);
   const article = document.createElement('article');
   article.className = `memory-card ${isOwner ? 'is-owner' : 'is-shared'}`;
 
   const photoButton = document.createElement('button');
   photoButton.type = 'button';
   photoButton.className = 'memory-photo-button';
-  photoButton.setAttribute('aria-label', `${isOwner ? '自分' : 'ほかの人'}が保存した${memory.location}の写真を拡大表示`);
+  photoButton.setAttribute('aria-label', `${authorLabel}が保存した${memory.location}の写真を拡大表示`);
 
   const image = document.createElement('img');
   image.alt = `${memory.location}の思い出`;
@@ -140,7 +152,7 @@ async function createMemoryCard(memory) {
   }
   const ownerBadge = document.createElement('span');
   ownerBadge.className = 'memory-owner-badge';
-  ownerBadge.textContent = isOwner ? '自分' : 'ほかの人';
+  ownerBadge.textContent = authorLabel;
   ownerBadge.setAttribute('aria-hidden', 'true');
   photoButton.append(image, ownerBadge);
   photoButton.addEventListener('click', () => openPhoto(memory, image.src));
@@ -173,6 +185,9 @@ function openPhoto(memory, imageUrl) {
   byId('dialog-location').textContent = memory.location;
   byId('dialog-date').textContent = formatDate(memory.taken_on);
   byId('dialog-comment').textContent = memory.comment || '';
+  byId('dialog-author').textContent = memory.user_id === state.user.id
+    ? '自分が保存'
+    : `${authorDisplay(memory.author_name)} さんが保存`;
   byId('photo-edit-button').hidden = memory.user_id !== state.user.id;
   byId('photo-dialog').showModal();
 }
@@ -216,6 +231,7 @@ async function uploadMemory(event) {
 
         const { error: databaseError } = await client.from(TABLE_NAME).insert({
           user_id: state.user.id,
+          author_name: currentUserName(),
           storage_path: path,
           photo_url: authenticatedPhotoUrl(path),
           taken_on: byId('memory-date').value,
@@ -317,9 +333,11 @@ byId('photo-edit-button').addEventListener('click', () => {
 byId('edit-dialog-close').addEventListener('click', () => byId('edit-dialog').close());
 byId('filter-date').addEventListener('change', renderMemories);
 byId('filter-location').addEventListener('input', renderMemories);
+byId('show-others').addEventListener('change', renderMemories);
 byId('clear-filters').addEventListener('click', () => {
   byId('filter-date').value = '';
   byId('filter-location').value = '';
+  byId('show-others').checked = false;
   renderMemories();
 });
 byId('photo-file').addEventListener('change', (event) => {

@@ -10,6 +10,15 @@ create table if not exists public.travel_memories (
   updated_at timestamptz not null default now()
 );
 
+alter table public.travel_memories
+  add column if not exists author_name text;
+
+update public.travel_memories t
+set author_name = u.email
+from auth.users u
+where t.user_id = u.id
+  and t.author_name is null;
+
 create index if not exists travel_memories_user_taken_on_idx
   on public.travel_memories (user_id, taken_on desc);
 

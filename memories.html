@@ -68,9 +68,9 @@
       --cp-highlight: rgba(253, 142, 161, 0.12);
     }
   </style>
-  <link rel="stylesheet" href="memories.css?v=20260819-4">
+  <link rel="stylesheet" href="memories.css?v=20260819-5">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" defer></script>
-  <script src="memories.js?v=20260819-6" defer></script>
+  <script src="memories.js?v=20260819-7" defer></script>
 </head>
 <body>
   <header class="album-header">
@@ -140,6 +140,13 @@
           <div><p class="eyebrow">MY ALBUM</p><h2 id="gallery-title">思い出一覧</h2></div>
           <span id="memory-count">0枚</span>
         </div>
+        <div class="album-scope">
+          <label class="scope-switch">
+            <input id="show-others" type="checkbox">
+            <span class="scope-track" aria-hidden="true"></span>
+            <span class="scope-text">ほかのメンバーの写真も表示</span>
+          </label>
+        </div>
         <div class="filters" aria-label="思い出を絞り込む">
           <label>撮影日<input id="filter-date" type="date"></label>
           <label>場所<input id="filter-location" type="search" placeholder="場所を検索"></label>
@@ -155,7 +162,7 @@
     <button class="dialog-close" type="button" id="photo-dialog-close" aria-label="拡大表示を閉じる">×</button>
     <img id="dialog-image" alt="">
     <div class="dialog-caption">
-      <strong id="dialog-location"></strong><span id="dialog-date"></span><p id="dialog-comment"></p>
+      <strong id="dialog-location"></strong><span id="dialog-date"></span><span id="dialog-author" class="dialog-author"></span><p id="dialog-comment"></p>
       <button class="secondary-button" type="button" id="photo-edit-button">詳細を編集</button>
     </div>
   </dialog>
