@@ -20,4 +20,4 @@ Authentication > Providers > Emailを有効にします。現在のプロジェ�
 3. Supabaseが表示するCallback URLをGoogle側の承認済みリダイレクトURIへ追加します。
 4. Googleプロバイダーを有効にします。
 
-`memories` バケットは非公開です。SQLのRLSポリシーにより、各ユーザーは `memories/{user_id}/` 以下と、自分の `travel_memories` レコードだけを操作できます。
+`memories` バケットは非公開です。SQLのRLSポリシーにより、ログイン済みユーザーは全員の写真を閲覧できます。写真の追加・編集・削除は、各ユーザーが所有する `memories/{user_id}/` 以下と、自分の `travel_memories` レコードだけに制限されます。未ログインユーザーは閲覧できません。

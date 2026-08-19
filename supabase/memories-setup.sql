@@ -33,10 +33,11 @@ for each row execute function public.set_travel_memories_updated_at();
 alter table public.travel_memories enable row level security;
 
 drop policy if exists "Users can view their own memories" on public.travel_memories;
-create policy "Users can view their own memories"
+drop policy if exists "Authenticated users can view memories" on public.travel_memories;
+create policy "Authenticated users can view memories"
 on public.travel_memories for select
 to authenticated
-using ((select auth.uid()) = user_id);
+using (true);
 
 drop policy if exists "Users can create their own memories" on public.travel_memories;
 create policy "Users can create their own memories"
@@ -67,13 +68,11 @@ on conflict (id) do update set
   allowed_mime_types = excluded.allowed_mime_types;
 
 drop policy if exists "Users can view their own memory photos" on storage.objects;
-create policy "Users can view their own memory photos"
+drop policy if exists "Authenticated users can view memory photos" on storage.objects;
+create policy "Authenticated users can view memory photos"
 on storage.objects for select
 to authenticated
-using (
-  bucket_id = 'memories'
-  and (storage.foldername(name))[1] = (select auth.uid()::text)
-);
+using (bucket_id = 'memories');
 
 drop policy if exists "Users can upload their own memory photos" on storage.objects;
 create policy "Users can upload their own memory photos"

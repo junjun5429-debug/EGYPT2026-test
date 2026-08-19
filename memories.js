@@ -165,10 +165,12 @@ function openPhoto(memory, imageUrl) {
   byId('dialog-location').textContent = memory.location;
   byId('dialog-date').textContent = formatDate(memory.taken_on);
   byId('dialog-comment').textContent = memory.comment || '';
+  byId('photo-edit-button').hidden = memory.user_id !== state.user.id;
   byId('photo-dialog').showModal();
 }
 
 function openEdit(memory) {
+  if (memory.user_id !== state.user.id) return;
   byId('edit-id').value = memory.id;
   byId('edit-date').value = memory.taken_on;
   byId('edit-location').value = memory.location;
