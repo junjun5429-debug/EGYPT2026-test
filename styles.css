@@ -170,6 +170,8 @@ main > section { padding: 104px var(--page-gutter); }
 .itinerary-tools { display: grid; justify-items: start; gap: 14px; width: fit-content; margin: -46px 0 54px; }
 .itinerary-extra { display: flex; align-items: center; width: fit-content; gap: 8px; padding: 0 0 5px; border: 0; border-bottom: 1px solid var(--cp-border-strong); background: transparent; color: var(--cp-text-muted); font-size: .76rem; font-weight: 700; text-decoration: none; cursor: pointer; }
 .itinerary-extra:hover { border-color: var(--cp-accent); color: var(--cp-accent); }
+.itinerary-memories { display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px; border-radius: 999px; background: var(--cp-accent); color: var(--cp-accent-fg); font-size: .9rem; font-weight: 800; letter-spacing: .02em; text-decoration: none; box-shadow: var(--cp-shadow); transition: background .2s ease, transform .2s ease; }
+.itinerary-memories:hover { background: var(--cp-accent-hover); transform: translateY(-1px); }
 .date-strip { display: grid; grid-template-columns: repeat(8, 1fr); border: 1px solid var(--cp-border); background: var(--cp-surface); }
 .date-button { min-width: 0; padding: 18px 8px; border: 0; border-right: 1px solid var(--cp-border); background: transparent; cursor: pointer; }
 .date-button:last-child { border-right: 0; }
