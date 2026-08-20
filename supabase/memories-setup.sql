@@ -17,6 +17,9 @@ alter table public.travel_memories
 alter table public.travel_memories
   add column if not exists author_name text;
 
+alter table public.travel_memories
+  add column if not exists thumbnail_path text;
+
 update public.travel_memories t
 set author_name = u.email
 from auth.users u

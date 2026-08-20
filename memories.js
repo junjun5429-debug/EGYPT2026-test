@@ -5,6 +5,8 @@ const TABLE_NAME = 'travel_memories';
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const TARGET_FILE_SIZE = 1_000_000;
 const MAX_IMAGE_DIMENSION = 2560;
+const THUMBNAIL_FILE_SIZE = 100_000;
+const THUMBNAIL_DIMENSION = 480;
 const MIN_IMAGE_QUALITY = 0.4;
 const MAX_IMAGE_QUALITY = 0.86;
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -93,6 +95,41 @@ async function compressImage(file) {
   throw new Error('写真を1 MB以下に圧縮できませんでした。');
 }
 
+async function createThumbnail(file) {
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement('canvas');
+  const scale = Math.min(1, THUMBNAIL_DIMENSION / Math.max(bitmap.width, bitmap.height));
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+
+  try {
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+    let minimumQuality = 0.35;
+    let maximumQuality = 0.8;
+    let bestBlob = null;
+    for (let attempt = 0; attempt < 7; attempt += 1) {
+      const quality = (minimumQuality + maximumQuality) / 2;
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob((result) => result ? resolve(result) : reject(new Error('サムネイルを作成できませんでした。')), 'image/jpeg', quality);
+      });
+      if (blob.size <= THUMBNAIL_FILE_SIZE) {
+        bestBlob = blob;
+        minimumQuality = quality;
+      } else {
+        maximumQuality = quality;
+      }
+    }
+    if (!bestBlob) throw new Error('サムネイルを100 KB以下に圧縮できませんでした。');
+    return new File([bestBlob], 'thumbnail.jpg', { type: 'image/jpeg', lastModified: file.lastModified });
+  } finally {
+    bitmap.close();
+  }
+}
+
 function authenticatedPhotoUrl(path) {
   const encodedPath = path.split('/').map(encodeURIComponent).join('/');
   return `${SUPABASE_URL}/storage/v1/object/authenticated/${BUCKET_NAME}/${encodedPath}`;
@@ -155,7 +192,7 @@ async function loadMemories() {
   galleryStatus.textContent = '写真を読み込んでいます';
   const { data, error } = await client
     .from(TABLE_NAME)
-    .select('id,user_id,author_name,storage_path,photo_url,taken_on,location,comment,created_at')
+    .select('id,user_id,author_name,storage_path,thumbnail_path,photo_url,taken_on,location,comment,created_at')
     .order('taken_on', { ascending: false })
     .order('created_at', { ascending: false });
 
@@ -226,7 +263,7 @@ async function createMemoryCard(memory) {
   image.alt = `${locationLabel}の思い出`;
   image.loading = 'lazy';
   try {
-    image.src = await signedPhotoUrl(memory.storage_path);
+    image.src = await signedPhotoUrl(memory.thumbnail_path || memory.storage_path);
   } catch {
     image.alt = '写真を表示できません';
   }
@@ -259,7 +296,7 @@ async function renderMemories() {
   memoryGrid.replaceChildren(...cards);
 }
 
-function openPhoto(memory, imageUrl) {
+async function openPhoto(memory, imageUrl) {
   state.selectedMemory = memory;
   byId('dialog-image').src = imageUrl;
   byId('dialog-image').alt = `${memory.location || '場所未設定'}の思い出`;
@@ -271,6 +308,12 @@ function openPhoto(memory, imageUrl) {
     : `${authorDisplay(memory.author_name)} さんが保存`;
   byId('photo-edit-button').hidden = memory.user_id !== state.user.id;
   byId('photo-dialog').showModal();
+  try {
+    const fullImageUrl = await signedPhotoUrl(memory.storage_path);
+    if (state.selectedMemory?.id === memory.id && byId('photo-dialog').open) {
+      byId('dialog-image').src = fullImageUrl;
+    }
+  } catch {}
 }
 
 function openEdit(memory) {
@@ -303,7 +346,10 @@ async function uploadMemory(event) {
 
       try {
         const compressedFile = await compressImage(file);
-        const path = `${state.user.id}/${crypto.randomUUID()}-${safeFileName(compressedFile.name)}`;
+        const thumbnailFile = await createThumbnail(compressedFile);
+        const fileId = crypto.randomUUID();
+        const path = `${state.user.id}/${fileId}-${safeFileName(compressedFile.name)}`;
+        const thumbnailPath = `${state.user.id}/thumbnails/${fileId}.jpg`;
         showMessage(uploadMessage, `${files.length}枚中${index + 1}枚目をアップロードしています。`);
         const { error: storageError } = await client.storage.from(BUCKET_NAME).upload(path, compressedFile, {
           cacheControl: '3600',
@@ -312,17 +358,28 @@ async function uploadMemory(event) {
         });
         if (storageError) throw storageError;
 
+        const { error: thumbnailError } = await client.storage.from(BUCKET_NAME).upload(thumbnailPath, thumbnailFile, {
+          cacheControl: '3600',
+          contentType: thumbnailFile.type,
+          upsert: false
+        });
+        if (thumbnailError) {
+          await client.storage.from(BUCKET_NAME).remove([path]);
+          throw thumbnailError;
+        }
+
         const { error: databaseError } = await client.from(TABLE_NAME).insert({
           user_id: state.user.id,
           author_name: currentUserName(),
           storage_path: path,
+          thumbnail_path: thumbnailPath,
           photo_url: authenticatedPhotoUrl(path),
           taken_on: byId('memory-date').value || null,
           location: byId('memory-location').value.trim() || null,
           comment: byId('memory-comment').value.trim() || null
         });
         if (databaseError) {
-          await client.storage.from(BUCKET_NAME).remove([path]);
+          await client.storage.from(BUCKET_NAME).remove([path, thumbnailPath]);
           throw databaseError;
         }
         savedCount += 1;
@@ -363,7 +420,8 @@ async function deleteMemory() {
   if (!memory || !confirm('この写真をアルバムから削除しますか？')) return;
   showMessage(editMessage, '削除しています。');
 
-  const { error: storageError } = await client.storage.from(BUCKET_NAME).remove([memory.storage_path]);
+  const paths = [memory.storage_path, memory.thumbnail_path].filter(Boolean);
+  const { error: storageError } = await client.storage.from(BUCKET_NAME).remove(paths);
   if (storageError) return showMessage(editMessage, `写真を削除できませんでした: ${storageError.message}`, 'error');
 
   const { error: databaseError } = await client.from(TABLE_NAME).delete().eq('id', memory.id);
@@ -381,7 +439,8 @@ async function deleteSelectedMemories() {
   galleryStatus.hidden = false;
   galleryStatus.textContent = `${memories.length}枚を削除しています。`;
   try {
-    const { error: storageError } = await client.storage.from(BUCKET_NAME).remove(memories.map((memory) => memory.storage_path));
+    const paths = memories.flatMap((memory) => [memory.storage_path, memory.thumbnail_path]).filter(Boolean);
+    const { error: storageError } = await client.storage.from(BUCKET_NAME).remove(paths);
     if (storageError) throw storageError;
 
     const { error: databaseError } = await client.from(TABLE_NAME).delete().in('id', memories.map((memory) => memory.id));
