@@ -11,6 +11,10 @@ create table if not exists public.travel_memories (
 );
 
 alter table public.travel_memories
+  alter column taken_on drop not null,
+  alter column location drop not null;
+
+alter table public.travel_memories
   add column if not exists author_name text;
 
 update public.travel_memories t

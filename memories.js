@@ -187,7 +187,7 @@ function filteredMemories() {
   return state.memories.filter((memory) => {
     const matchesScope = showOthers || memory.user_id === state.user.id;
     const matchesDate = !date || memory.taken_on === date;
-    const matchesLocation = !location || memory.location.toLocaleLowerCase('ja').includes(location);
+    const matchesLocation = !location || (memory.location || '').toLocaleLowerCase('ja').includes(location);
     return matchesScope && matchesDate && matchesLocation;
   });
 }
@@ -195,13 +195,14 @@ function filteredMemories() {
 async function createMemoryCard(memory) {
   const isOwner = memory.user_id === state.user.id;
   const authorLabel = isOwner ? '自分' : authorDisplay(memory.author_name);
+  const locationLabel = memory.location || '場所未設定';
   const article = document.createElement('article');
   article.className = `memory-card ${isOwner ? 'is-owner' : 'is-shared'}`;
 
   if (isOwner) {
     const selectionLabel = document.createElement('label');
     selectionLabel.className = 'memory-select';
-    selectionLabel.setAttribute('aria-label', `${memory.location}の写真を選択`);
+    selectionLabel.setAttribute('aria-label', `${locationLabel}の写真を選択`);
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = state.selectedIds.has(memory.id);
@@ -219,10 +220,10 @@ async function createMemoryCard(memory) {
   const photoButton = document.createElement('button');
   photoButton.type = 'button';
   photoButton.className = 'memory-photo-button';
-  photoButton.setAttribute('aria-label', `${authorLabel}が保存した${memory.location}の写真を拡大表示`);
+  photoButton.setAttribute('aria-label', `${authorLabel}が保存した${locationLabel}の写真を拡大表示`);
 
   const image = document.createElement('img');
-  image.alt = `${memory.location}の思い出`;
+  image.alt = `${locationLabel}の思い出`;
   image.loading = 'lazy';
   try {
     image.src = await signedPhotoUrl(memory.storage_path);
@@ -261,9 +262,9 @@ async function renderMemories() {
 function openPhoto(memory, imageUrl) {
   state.selectedMemory = memory;
   byId('dialog-image').src = imageUrl;
-  byId('dialog-image').alt = `${memory.location}の思い出`;
-  byId('dialog-location').textContent = memory.location;
-  byId('dialog-date').textContent = formatDate(memory.taken_on);
+  byId('dialog-image').alt = `${memory.location || '場所未設定'}の思い出`;
+  byId('dialog-location').textContent = memory.location || '場所未設定';
+  byId('dialog-date').textContent = formatDate(memory.taken_on) || '撮影日未設定';
   byId('dialog-comment').textContent = memory.comment || '';
   byId('dialog-author').textContent = memory.user_id === state.user.id
     ? '自分が保存'
@@ -275,8 +276,8 @@ function openPhoto(memory, imageUrl) {
 function openEdit(memory) {
   if (memory.user_id !== state.user.id) return;
   byId('edit-id').value = memory.id;
-  byId('edit-date').value = memory.taken_on;
-  byId('edit-location').value = memory.location;
+  byId('edit-date').value = memory.taken_on || '';
+  byId('edit-location').value = memory.location || '';
   byId('edit-comment').value = memory.comment || '';
   showMessage(editMessage);
   byId('edit-dialog').showModal();
@@ -316,8 +317,8 @@ async function uploadMemory(event) {
           author_name: currentUserName(),
           storage_path: path,
           photo_url: authenticatedPhotoUrl(path),
-          taken_on: byId('memory-date').value,
-          location: byId('memory-location').value.trim(),
+          taken_on: byId('memory-date').value || null,
+          location: byId('memory-location').value.trim() || null,
           comment: byId('memory-comment').value.trim() || null
         });
         if (databaseError) {
@@ -347,8 +348,8 @@ async function updateMemory(event) {
   event.preventDefault();
   const id = byId('edit-id').value;
   const { error } = await client.from(TABLE_NAME).update({
-    taken_on: byId('edit-date').value,
-    location: byId('edit-location').value.trim(),
+    taken_on: byId('edit-date').value || null,
+    location: byId('edit-location').value.trim() || null,
     comment: byId('edit-comment').value.trim() || null
   }).eq('id', id);
 
