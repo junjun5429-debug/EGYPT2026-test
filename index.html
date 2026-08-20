@@ -40,7 +40,7 @@
     }
   </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="styles.css?v=20260820-1">
+  <link rel="stylesheet" href="styles.css?v=20260820-2">
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
   <script src="app.js?v=20260820-1" defer></script>
 </head>
@@ -51,7 +51,6 @@
       <div class="topbar-meta">
         <span>2026.09.20 – 09.27</span>
         <span>8 DAYS</span>
-        <a class="topbar-link" href="memories.html">思い出フォト</a>
         <a class="topbar-link" href="checklist.html">事前チェック</a>
       </div>
     </nav>
@@ -93,9 +92,14 @@
 
   <main>
     <section class="itinerary" id="itinerary" aria-labelledby="itinerary-title">
-      <button class="itinerary-extra" type="button" id="arabic-open">
-        簡単なアラビア語コミュニケーション <span aria-hidden="true">＋</span>
-      </button>
+      <div class="itinerary-tools">
+        <button class="itinerary-extra" type="button" id="arabic-open">
+          簡単なアラビア語コミュニケーション <span aria-hidden="true">＋</span>
+        </button>
+        <a class="itinerary-extra" href="memories.html">
+          思い出フォト <span aria-hidden="true">→</span>
+        </a>
+      </div>
       <div class="section-heading compact">
         <p class="eyebrow">DAILY ITINERARY</p>
         <h2 id="itinerary-title">日付から旅をひらく</h2>
