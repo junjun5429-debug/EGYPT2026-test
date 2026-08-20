@@ -3,8 +3,10 @@ const SUPABASE_KEY = 'sb_publishable_KZgbYMI3wmd4KE2FVyW_Xg_TH04wI69';
 const BUCKET_NAME = 'memories';
 const TABLE_NAME = 'travel_memories';
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const TARGET_FILE_SIZE = 2_000_000;
 const MAX_IMAGE_DIMENSION = 2560;
-const IMAGE_QUALITY = 0.82;
+const MIN_IMAGE_QUALITY = 0.4;
+const MAX_IMAGE_QUALITY = 0.86;
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -47,18 +49,48 @@ function safeFileName(name) {
 
 async function compressImage(file) {
   const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-  canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
+  const initialScale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(bitmap.width, bitmap.height));
+  let width = Math.max(1, Math.round(bitmap.width * initialScale));
+  let height = Math.max(1, Math.round(bitmap.height * initialScale));
 
-  const blob = await new Promise((resolve, reject) => {
-    canvas.toBlob((result) => result ? resolve(result) : reject(new Error('写真を圧縮できませんでした。')), 'image/webp', IMAGE_QUALITY);
-  });
-  const stem = file.name.replace(/\.[^.]+$/, '') || 'photo';
-  return new File([blob], `${stem}.webp`, { type: 'image/webp', lastModified: file.lastModified });
+  try {
+    for (let resizeAttempt = 0; resizeAttempt < 8; resizeAttempt += 1) {
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext('2d');
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, width, height);
+      context.drawImage(bitmap, 0, 0, width, height);
+
+      let minimumQuality = MIN_IMAGE_QUALITY;
+      let maximumQuality = MAX_IMAGE_QUALITY;
+      let bestBlob = null;
+      for (let qualityAttempt = 0; qualityAttempt < 7; qualityAttempt += 1) {
+        const quality = (minimumQuality + maximumQuality) / 2;
+        const blob = await new Promise((resolve, reject) => {
+          canvas.toBlob((result) => result ? resolve(result) : reject(new Error('写真を圧縮できませんでした。')), 'image/jpeg', quality);
+        });
+        if (blob.type !== 'image/jpeg') throw new Error('このブラウザーではJPEG圧縮を利用できません。');
+        if (blob.size <= TARGET_FILE_SIZE) {
+          bestBlob = blob;
+          minimumQuality = quality;
+        } else {
+          maximumQuality = quality;
+        }
+      }
+
+      if (bestBlob) {
+        const stem = file.name.replace(/\.[^.]+$/, '') || 'photo';
+        return new File([bestBlob], `${stem}.jpg`, { type: 'image/jpeg', lastModified: file.lastModified });
+      }
+      width = Math.max(1, Math.round(width * 0.8));
+      height = Math.max(1, Math.round(height * 0.8));
+    }
+  } finally {
+    bitmap.close();
+  }
+  throw new Error('写真を2 MB以下に圧縮できませんでした。');
 }
 
 function authenticatedPhotoUrl(path) {
