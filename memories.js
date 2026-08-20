@@ -3,7 +3,7 @@ const SUPABASE_KEY = 'sb_publishable_KZgbYMI3wmd4KE2FVyW_Xg_TH04wI69';
 const BUCKET_NAME = 'memories';
 const TABLE_NAME = 'travel_memories';
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const TARGET_FILE_SIZE = 2_000_000;
+const TARGET_FILE_SIZE = 1_000_000;
 const MAX_IMAGE_DIMENSION = 2560;
 const MIN_IMAGE_QUALITY = 0.4;
 const MAX_IMAGE_QUALITY = 0.86;
@@ -90,7 +90,7 @@ async function compressImage(file) {
   } finally {
     bitmap.close();
   }
-  throw new Error('写真を2 MB以下に圧縮できませんでした。');
+  throw new Error('写真を1 MB以下に圧縮できませんでした。');
 }
 
 function authenticatedPhotoUrl(path) {
