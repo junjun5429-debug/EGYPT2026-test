@@ -68,9 +68,9 @@
       --cp-highlight: rgba(253, 142, 161, 0.12);
     }
   </style>
-  <link rel="stylesheet" href="memories.css?v=20260819-5">
+  <link rel="stylesheet" href="memories.css?v=20260820-1">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" defer></script>
-  <script src="memories.js?v=20260819-7" defer></script>
+  <script src="memories.js?v=20260820-1" defer></script>
 </head>
 <body>
   <header class="album-header">
@@ -116,7 +116,7 @@
       <section class="upload-panel" aria-labelledby="upload-title">
         <div class="section-heading">
           <div><p class="eyebrow">ADD A MEMORY</p><h2 id="upload-title">写真を追加</h2></div>
-          <span class="upload-limit">JPEG・PNG・WebP / 10 MBまで</span>
+          <span class="upload-limit">JPEG・PNG・WebP / 10 MBまで・保存時に自動圧縮</span>
         </div>
         <form class="upload-form" id="upload-form">
           <label class="photo-picker" for="photo-file">
@@ -151,6 +151,10 @@
           <label>撮影日<input id="filter-date" type="date"></label>
           <label>場所<input id="filter-location" type="search" placeholder="場所を検索"></label>
           <button class="secondary-button" type="button" id="clear-filters">条件をクリア</button>
+        </div>
+        <div class="selection-bar" id="selection-bar" hidden>
+          <span id="selection-count">0枚を選択中</span>
+          <button class="danger-button" type="button" id="delete-selected-button">選択した写真を削除</button>
         </div>
         <p class="gallery-status" id="gallery-status" aria-live="polite">読み込み中</p>
         <div class="memory-grid" id="memory-grid"></div>

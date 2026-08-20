@@ -15,12 +15,15 @@ img { display: block; max-width: 100%; }
 label { display: grid; gap: 6px; color: var(--cp-text-muted); font-size: .82rem; font-weight: 700; }
 input, textarea {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid var(--cp-border);
   border-radius: 6px;
   background: var(--cp-surface);
   color: var(--cp-text);
   padding: 11px 12px;
 }
+input[type="date"] { display: block; appearance: none; -webkit-appearance: none; }
 input:focus, textarea:focus { outline: 2px solid var(--cp-accent); outline-offset: 1px; }
 .album-header { background: var(--cp-bg-elevated); border-bottom: 1px solid var(--cp-border); }
 .album-nav {
@@ -79,6 +82,7 @@ input:focus, textarea:focus { outline: 2px solid var(--cp-accent); outline-offse
 .photo-preview-grid img { width: 72px; height: 72px; border-radius: 6px; object-fit: cover; }
 .photo-selection-summary { color: var(--cp-text-muted); font-size: .78rem; }
 .memory-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 18px; }
+.memory-fields > label, .filters > label { min-width: 0; }
 .wide-field { grid-column: 1 / -1; }
 .gallery-section { padding-top: 64px; }
 .album-scope { margin-bottom: 12px; }
@@ -90,9 +94,14 @@ input:focus, textarea:focus { outline: 2px solid var(--cp-accent); outline-offse
 .scope-switch input:checked + .scope-track::after { transform: translateX(18px); }
 .scope-switch input:focus-visible + .scope-track { outline: 2px solid var(--cp-accent); outline-offset: 2px; }
 .filters { display: grid; grid-template-columns: 180px minmax(200px, 1fr) auto; align-items: end; gap: 12px; padding: 18px; border: 1px solid var(--cp-border); background: var(--cp-surface); }
+.selection-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 12px; padding: 12px 16px; border: 1px solid var(--cp-accent); background: var(--cp-accent-soft); }
+.selection-bar span { font-size: .86rem; font-weight: 800; }
 .gallery-status { margin: 24px 0; color: var(--cp-text-muted); }
 .memory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
-.memory-card { overflow: hidden; min-width: 0; border: 1px solid var(--cp-border); border-radius: 6px; background: var(--cp-surface); }
+.memory-card { position: relative; overflow: hidden; min-width: 0; border: 1px solid var(--cp-border); border-radius: 6px; background: var(--cp-surface); }
+.memory-card.is-selected { border-color: var(--cp-accent); box-shadow: inset 0 0 0 2px var(--cp-accent); }
+.memory-select { position: absolute; z-index: 2; top: 7px; left: 7px; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 4px; background: var(--cp-panel-strong); box-shadow: 0 1px 5px rgba(0, 0, 0, .18); cursor: pointer; }
+.memory-select input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--cp-accent); }
 .memory-photo-button { position: relative; display: block; width: 100%; aspect-ratio: 1; padding: 0; border: 0; background: var(--cp-surface-soft); }
 .memory-photo-button img { width: 100%; height: 100%; object-fit: cover; }
 .memory-owner-badge { position: absolute; top: 6px; right: 6px; max-width: calc(100% - 12px); overflow: hidden; border-radius: 4px; padding: 3px 7px; color: #fff; font-size: .66rem; font-weight: 800; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }

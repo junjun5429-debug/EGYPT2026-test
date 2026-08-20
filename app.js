@@ -169,6 +169,77 @@ const days = [
 ];
 
 const routeNames = ["成田", "カイロ・ギザ", "アブシンベル", "アスワン", "コムオンボ", "エドフ", "ルクソール", "成田"];
+const dayMaps = [
+  {
+    note: "成田から空路でエジプトへ",
+    stops: [
+      { name: "成田国際空港", detail: "MS965便でカイロへ", x: 392, y: 26, lat: 35.7720, lng: 140.3929, mode: "出発" },
+      { name: "カイロ国際空港", detail: "翌朝到着 · 入国・査証取得", x: 270, y: 143, lat: 30.1120, lng: 31.4000, mode: "国際線" }
+    ]
+  },
+  {
+    note: "カイロ近郊を専用車で周遊",
+    stops: [
+      { name: "カイロ国際空港", detail: "到着・ホテルへ移動", x: 270, y: 143, lat: 30.1120, lng: 31.4000, mode: "専用車" },
+      { name: "ギザの三大ピラミッド", detail: "スフィンクス・パノラマポイント", x: 225, y: 166, lat: 29.9792, lng: 31.1342, mode: "専用車" },
+      { name: "大エジプト博物館", detail: "グランドオープン後の館内を見学", x: 237, y: 150, lat: 29.9936, lng: 31.1194, mode: "専用車" },
+      { name: "カイロ旧市街", detail: "モスク・ハンハリーリバザール", x: 258, y: 169, lat: 30.0477, lng: 31.2622, mode: "専用車" },
+      { name: "メナハウス", detail: "ピラミッドを望むホテル", x: 219, y: 178, lat: 29.9855, lng: 31.1344, mode: "宿泊" }
+    ]
+  },
+  {
+    note: "国内線と砂漠の陸路で南端へ",
+    stops: [
+      { name: "カイロ", detail: "国内線でアスワンへ", x: 258, y: 154, lat: 30.1120, lng: 31.4000, mode: "国内線" },
+      { name: "アスワン", detail: "空港からハイダムを経由", x: 276, y: 463, lat: 23.9681, lng: 32.8248, mode: "専用車" },
+      { name: "アスワン・ハイダム", detail: "砂漠横断の途中に見学", x: 266, y: 480, lat: 23.9700, lng: 32.8770, mode: "専用車" },
+      { name: "アブシンベル", detail: "大神殿・ナセル湖遊覧・光のショー", x: 225, y: 555, lat: 22.3372, lng: 31.6258, mode: "宿泊" }
+    ]
+  },
+  {
+    note: "アブシンベルからアスワン、船旅の起点へ",
+    stops: [
+      { name: "アブシンベル神殿", detail: "早朝の貸切入場", x: 225, y: 555, lat: 22.3372, lng: 31.6258, mode: "専用車" },
+      { name: "アスワン", detail: "約280kmを北上", x: 276, y: 463, lat: 24.0889, lng: 32.8998, mode: "乗船" },
+      { name: "ナイル川・ファルーカ", detail: "伝統帆船で遊覧", x: 265, y: 445, lat: 24.0938, lng: 32.8880, mode: "帆船" }
+    ]
+  },
+  {
+    note: "ナイル川をクルーズ船で北上",
+    stops: [
+      { name: "イシス神殿", detail: "フィラエ島へボートで渡る", x: 276, y: 472, lat: 24.0258, lng: 32.8845, mode: "ボート" },
+      { name: "アスワン", detail: "クルーズ船へ戻り出航", x: 269, y: 450, lat: 24.0889, lng: 32.8998, mode: "クルーズ" },
+      { name: "コムオンボ神殿", detail: "二重構造の神殿を見学", x: 275, y: 394, lat: 24.4521, lng: 32.9280, mode: "クルーズ" },
+      { name: "エドフ方面", detail: "夕食後も船で北上", x: 277, y: 348, lat: 24.9781, lng: 32.8734, mode: "船中泊" }
+    ]
+  },
+  {
+    note: "エドフからエスナを通りルクソールへ",
+    stops: [
+      { name: "エドフ・ホルス神殿", detail: "船着場から馬車で往復", x: 277, y: 348, lat: 24.9781, lng: 32.8734, mode: "馬車" },
+      { name: "エスナの水門", detail: "約6mの水位差を通過", x: 279, y: 312, lat: 25.2930, lng: 32.5500, mode: "クルーズ" },
+      { name: "ルクソール博物館", detail: "オプショナルツアー", x: 286, y: 281, lat: 25.7076, lng: 32.6445, mode: "専用車" },
+      { name: "ルクソール東岸", detail: "神殿とスフィンクス参道", x: 275, y: 270, lat: 25.6995, lng: 32.6391, mode: "船中泊" }
+    ]
+  },
+  {
+    note: "ルクソール両岸を巡り、空路でカイロへ",
+    stops: [
+      { name: "王家の谷", detail: "ツタンカーメン王・セティ1世の墓", x: 259, y: 270, lat: 25.7402, lng: 32.6014, mode: "専用車" },
+      { name: "ハトシェプスト女王葬祭殿", detail: "西岸の遺跡群を周遊", x: 263, y: 281, lat: 25.7382, lng: 32.6066, mode: "専用車" },
+      { name: "カルナック神殿", detail: "大列柱室を見学", x: 284, y: 263, lat: 25.7188, lng: 32.6573, mode: "専用車" },
+      { name: "ルクソール空港", detail: "国内線でカイロへ", x: 296, y: 280, lat: 25.6710, lng: 32.7066, mode: "国内線" },
+      { name: "カイロ国際空港", detail: "帰国便へ乗り継ぎ", x: 270, y: 143, lat: 30.1120, lng: 31.4000, mode: "国際線" }
+    ]
+  },
+  {
+    note: "カイロから成田へ帰国",
+    stops: [
+      { name: "カイロ国際空港", detail: "MS964便で日本へ", x: 270, y: 143, lat: 30.1120, lng: 31.4000, mode: "国際線" },
+      { name: "成田国際空港", detail: "18:30到着予定", x: 392, y: 26, lat: 35.7720, lng: 140.3929, mode: "国際線" }
+    ]
+  }
+];
 const currencyCodes = ["JPY", "USD", "EGP"];
 const currencyCacheKey = "egypt-2026-currency-rates";
 const weatherCities = [
@@ -183,9 +254,12 @@ const dateStrip = document.querySelector("#date-strip");
 const route = document.querySelector("#route");
 const dialog = document.querySelector("#place-dialog");
 const arabicDialog = document.querySelector("#arabic-dialog");
+const mapDialog = document.querySelector("#map-dialog");
 const currencyInputs = [...document.querySelectorAll("[data-currency]")];
 let currencyRates = null;
 let arabicTrigger = null;
+let mapTrigger = null;
+let leafletMap = null;
 
 function weatherLabel(code) {
   if (code === 0) return "快晴";
@@ -417,6 +491,134 @@ function closeArabic() {
   if (arabicTrigger) arabicTrigger.focus();
 }
 
+function mapSegmentClass(mode) {
+  if (["国内線", "国際線"].includes(mode)) return "is-flight";
+  if (["クルーズ", "帆船", "ボート", "船中泊", "乗船"].includes(mode)) return "is-water";
+  return "is-road";
+}
+
+function renderInteractiveMap(map, day) {
+  if (typeof L === "undefined") return;
+  if (leafletMap) leafletMap.remove();
+
+  const mapElement = document.querySelector("#egypt-map");
+  mapElement.innerHTML = "";
+  leafletMap = L.map(mapElement, { scrollWheelZoom: false });
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(leafletMap);
+
+  const rootStyle = getComputedStyle(document.documentElement);
+  const accent = rootStyle.getPropertyValue("--cp-accent").trim();
+  const link = rootStyle.getPropertyValue("--cp-link").trim();
+  const points = map.stops.map(stop => [stop.lat, stop.lng]);
+
+  map.stops.slice(1).forEach((stop, index) => {
+    const previous = map.stops[index];
+    const type = mapSegmentClass(stop.mode);
+    L.polyline([[previous.lat, previous.lng], [stop.lat, stop.lng]], {
+      color: type === "is-water" ? link : accent,
+      weight: 4,
+      opacity: .85,
+      dashArray: type === "is-flight" ? "10 10" : null
+    }).addTo(leafletMap);
+  });
+
+  map.stops.forEach((stop, index) => {
+    const marker = L.marker([stop.lat, stop.lng], {
+      icon: L.divIcon({
+        className: "route-map-marker",
+        html: `<span>${index + 1}</span>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15],
+        popupAnchor: [0, -16]
+      })
+    }).addTo(leafletMap);
+    marker.bindPopup(`<strong>${stop.name}</strong><small>${stop.detail}</small><em>${stop.mode}</em>`);
+  });
+
+  leafletMap.fitBounds(points, { padding: [32, 32], maxZoom: 13 });
+  requestAnimationFrame(() => leafletMap.invalidateSize());
+  mapElement.setAttribute("aria-label", `${day.date}の訪問地と移動経路を示すOpenStreetMap`);
+}
+
+function openMap() {
+  const day = days[selectedDay];
+  const map = dayMaps[selectedDay];
+  mapTrigger = document.activeElement;
+  document.querySelector("#map-kicker").textContent = `DAY ${String(selectedDay + 1).padStart(2, "0")} · ${day.date} ${day.weekday}`;
+  document.querySelector("#map-title").textContent = day.location;
+  document.querySelector("#map-summary").textContent = day.title;
+  document.querySelector("#map-route-meta").innerHTML = `<span>ROUTE</span><strong>${map.note}</strong>`;
+  document.querySelector("#map-stop-list").innerHTML = map.stops.map((stop, index) => `
+    <li>
+      <span class="map-stop-number">${index + 1}</span>
+      <div><strong>${stop.name}</strong><small>${stop.detail}</small></div>
+      <em>${stop.mode}</em>
+    </li>`).join("");
+
+  const segments = map.stops.slice(1).map((stop, index) => {
+    const previous = map.stops[index];
+    return `<line class="map-route-line ${mapSegmentClass(stop.mode)}" x1="${previous.x}" y1="${previous.y}" x2="${stop.x}" y2="${stop.y}" />`;
+  }).join("");
+  const markers = map.stops.map((stop, index) => `
+    <g class="map-marker" transform="translate(${stop.x} ${stop.y})">
+      <circle r="14"></circle>
+      <text text-anchor="middle" dominant-baseline="central">${index + 1}</text>
+    </g>`).join("");
+  document.querySelector("#egypt-map").innerHTML = `
+    <svg viewBox="0 0 420 620" role="img" aria-labelledby="egypt-map-title egypt-map-desc">
+      <title id="egypt-map-title">${day.date}の訪問地と移動経路</title>
+      <desc id="egypt-map-desc">${map.stops.map((stop, index) => `${index + 1}. ${stop.name}`).join("、")}</desc>
+      <defs>
+        <pattern id="desert-texture" width="18" height="18" patternUnits="userSpaceOnUse">
+          <path d="M-4 14C2 8 8 8 14 14S26 20 32 14"></path>
+        </pattern>
+        <filter id="map-shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".16"></feDropShadow>
+        </filter>
+      </defs>
+      <path class="map-sea" d="M0 0h420v620H0z"></path>
+      <path class="map-neighbor" d="M0 74L104 77L104 570L0 570ZM104 570L292 570L300 620L74 620ZM286 75L420 83L420 238L368 211L316 215L374 103Z"></path>
+      <path class="map-land" filter="url(#map-shadow)" d="M104 77C151 70 216 68 251 73C266 75 278 78 286 84L286 103C286 120 292 139 299 153C307 181 312 205 313 229C311 269 305 316 303 361C300 424 296 498 292 570L104 570Z"></path>
+      <path class="map-sinai" filter="url(#map-shadow)" d="M286 84L374 103L316 215C309 196 304 174 299 153C292 133 287 116 286 103Z"></path>
+      <path class="map-desert-texture" d="M104 77C151 70 216 68 251 73C266 75 278 78 286 84L286 103C286 120 292 139 299 153C307 181 312 205 313 229C311 269 305 316 303 361C300 424 296 498 292 570L104 570ZM286 84L374 103L316 215C309 196 304 174 299 153C292 133 287 116 286 103Z"></path>
+      <path class="map-gulf" d="M286 103C289 126 293 141 299 153C308 181 313 203 316 215C306 205 296 190 290 174C283 153 280 130 286 103Z"></path>
+      <path class="map-relief" d="M126 151C161 126 203 125 232 144M128 214C169 190 213 193 239 218M130 301C172 273 218 280 246 307M136 390C173 361 215 365 244 393M137 480C176 451 218 456 247 485M324 119C337 131 341 147 335 164M343 111C356 124 359 139 350 153"></path>
+      <path class="map-nile-valley" d="M276 530C266 482 271 434 276 391C283 331 282 278 273 226C269 197 263 174 258 153"></path>
+      <path class="map-lake" d="M275 541C266 525 263 506 270 489C278 499 281 514 278 529C286 543 284 558 276 571C269 561 268 550 275 541Z"></path>
+      <path class="map-nile" d="M276 505C269 456 275 412 278 369C283 310 280 259 273 219C268 190 262 169 258 153"></path>
+      <path class="map-delta-fill" d="M258 153C245 143 226 126 216 103C238 94 268 94 290 105C280 127 269 144 258 153Z"></path>
+      <path class="map-delta" d="M258 153C249 139 232 122 216 103M258 153C258 135 257 116 257 98M258 153C269 136 279 120 290 105M245 135L274 130"></path>
+      <path class="map-border" d="M104 77L104 570L292 570M286 84L286 103M286 84L374 103L316 215"></path>
+      <text class="map-water-label" x="28" y="45">地中海</text>
+      <text class="map-water-label" x="337" y="322" transform="rotate(78 337 322)">紅海</text>
+      <text class="map-water-label map-small-label" x="302" y="174" transform="rotate(72 302 174)">スエズ湾</text>
+      <text class="map-country-label" x="143" y="330">EGYPT</text>
+      <text class="map-neighbor-label" x="33" y="327">LIBYA</text>
+      <text class="map-neighbor-label" x="155" y="605">SUDAN</text>
+      <text class="map-neighbor-label" x="349" y="74">ISRAEL</text>
+      <text class="map-city-label" x="265" y="126">カイロ</text>
+      <text class="map-city-label" x="288" y="452">アスワン</text>
+      ${segments}
+      ${markers}
+    </svg>`;
+  mapDialog.showModal();
+  document.body.classList.add("dialog-open");
+  renderInteractiveMap(map, day);
+}
+
+function closeMap() {
+  if (mapDialog.open) mapDialog.close();
+  if (leafletMap) {
+    leafletMap.remove();
+    leafletMap = null;
+  }
+  document.body.classList.remove("dialog-open");
+  if (mapTrigger) mapTrigger.focus();
+}
+
 function updateHash(placeId) {
   const value = `day=${selectedDay + 1}${placeId ? `&place=${placeId}` : ""}`;
   history.replaceState(null, "", `#${value}`);
@@ -441,6 +643,10 @@ document.querySelector("#arabic-open").addEventListener("click", openArabic);
 document.querySelector("#arabic-close").addEventListener("click", closeArabic);
 arabicDialog.addEventListener("click", event => { if (event.target === arabicDialog) closeArabic(); });
 arabicDialog.addEventListener("cancel", event => { event.preventDefault(); closeArabic(); });
+document.querySelector("#map-open").addEventListener("click", openMap);
+document.querySelector("#map-close").addEventListener("click", closeMap);
+mapDialog.addEventListener("click", event => { if (event.target === mapDialog) closeMap(); });
+mapDialog.addEventListener("cancel", event => { event.preventDefault(); closeMap(); });
 window.addEventListener("hashchange", restoreFromHash);
 document.querySelector("#weather-refresh").addEventListener("click", loadWeather);
 document.querySelector("#currency-refresh").addEventListener("click", loadCurrencyRates);

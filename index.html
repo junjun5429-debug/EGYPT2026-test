@@ -39,8 +39,10 @@
       --cp-highlight: rgba(177, 31, 75, 0.12);
     }
   </style>
-  <link rel="stylesheet" href="styles.css?v=20260817-13">
-  <script src="app.js?v=20260817-6" defer></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="styles.css?v=20260820-1">
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <script src="app.js?v=20260820-1" defer></script>
 </head>
 <body>
   <header class="hero" id="top">
@@ -107,6 +109,9 @@
             <p class="day-location" id="day-location"></p>
             <h3 id="day-title"></h3>
             <p id="day-summary"></p>
+            <button class="map-open-button" type="button" id="map-open">
+              <span aria-hidden="true">⌖</span> 地図表示
+            </button>
           </div>
         </div>
         <div class="day-layout">
@@ -229,6 +234,26 @@
         <div><dt>大丈夫です</dt><dd>タマーム</dd></div>
         <div><dt>水をください</dt><dd>マイヤ、ミン・ファドラク</dd></div>
       </dl>
+    </div>
+  </dialog>
+
+  <dialog class="map-dialog" id="map-dialog" aria-labelledby="map-title">
+    <button type="button" class="dialog-close" id="map-close" aria-label="地図を閉じる">×</button>
+    <div class="map-dialog-content">
+      <header class="map-dialog-heading">
+        <div>
+          <p class="eyebrow" id="map-kicker"></p>
+          <h2 id="map-title"></h2>
+        </div>
+        <p id="map-summary"></p>
+      </header>
+      <div class="map-layout">
+        <div class="egypt-map" id="egypt-map" aria-label="選択日のエジプト地図"></div>
+        <div class="map-route-panel">
+          <div class="map-route-meta" id="map-route-meta"></div>
+          <ol class="map-stop-list" id="map-stop-list"></ol>
+        </div>
+      </div>
     </div>
   </dialog>
 </body>

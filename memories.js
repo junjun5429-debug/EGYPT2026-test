@@ -3,10 +3,12 @@ const SUPABASE_KEY = 'sb_publishable_KZgbYMI3wmd4KE2FVyW_Xg_TH04wI69';
 const BUCKET_NAME = 'memories';
 const TABLE_NAME = 'travel_memories';
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_IMAGE_DIMENSION = 2560;
+const IMAGE_QUALITY = 0.82;
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const state = { user: null, memories: [], previewUrls: [], selectedMemory: null, renderVersion: 0 };
+const state = { user: null, memories: [], previewUrls: [], selectedMemory: null, selectedIds: new Set(), renderVersion: 0 };
 const byId = (id) => document.getElementById(id);
 
 const authPanel = byId('auth-panel');
@@ -41,6 +43,22 @@ function safeFileName(name) {
   const extension = name.split('.').pop().toLowerCase();
   const stem = name.slice(0, -(extension.length + 1)).replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 60) || 'photo';
   return `${stem}.${extension}`;
+}
+
+async function compressImage(file) {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+
+  const blob = await new Promise((resolve, reject) => {
+    canvas.toBlob((result) => result ? resolve(result) : reject(new Error('写真を圧縮できませんでした。')), 'image/webp', IMAGE_QUALITY);
+  });
+  const stem = file.name.replace(/\.[^.]+$/, '') || 'photo';
+  return new File([blob], `${stem}.webp`, { type: 'image/webp', lastModified: file.lastModified });
 }
 
 function authenticatedPhotoUrl(path) {
@@ -86,6 +104,7 @@ function setSignedOut() {
   state.renderVersion += 1;
   state.user = null;
   state.memories = [];
+  state.selectedIds.clear();
   authPanel.hidden = false;
   albumWorkspace.hidden = true;
   memoryGrid.replaceChildren();
@@ -116,7 +135,17 @@ async function loadMemories() {
   }
 
   state.memories = data || [];
+  const ownedIds = new Set(state.memories.filter((memory) => memory.user_id === state.user.id).map((memory) => memory.id));
+  state.selectedIds.forEach((id) => {
+    if (!ownedIds.has(id)) state.selectedIds.delete(id);
+  });
   await renderMemories();
+}
+
+function updateSelectionBar() {
+  const count = state.selectedIds.size;
+  byId('selection-count').textContent = `${count}枚を選択中`;
+  byId('selection-bar').hidden = count === 0;
 }
 
 function filteredMemories() {
@@ -136,6 +165,24 @@ async function createMemoryCard(memory) {
   const authorLabel = isOwner ? '自分' : authorDisplay(memory.author_name);
   const article = document.createElement('article');
   article.className = `memory-card ${isOwner ? 'is-owner' : 'is-shared'}`;
+
+  if (isOwner) {
+    const selectionLabel = document.createElement('label');
+    selectionLabel.className = 'memory-select';
+    selectionLabel.setAttribute('aria-label', `${memory.location}の写真を選択`);
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = state.selectedIds.has(memory.id);
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) state.selectedIds.add(memory.id);
+      else state.selectedIds.delete(memory.id);
+      article.classList.toggle('is-selected', checkbox.checked);
+      updateSelectionBar();
+    });
+    selectionLabel.append(checkbox);
+    article.classList.toggle('is-selected', checkbox.checked);
+    article.append(selectionLabel);
+  }
 
   const photoButton = document.createElement('button');
   photoButton.type = 'button';
@@ -165,6 +212,7 @@ async function renderMemories() {
   const memories = filteredMemories();
   memoryGrid.replaceChildren();
   byId('memory-count').textContent = `${memories.length}枚`;
+  updateSelectionBar();
 
   if (!memories.length) {
     galleryStatus.hidden = false;
@@ -218,13 +266,15 @@ async function uploadMemory(event) {
 
   try {
     for (const [index, file] of files.entries()) {
-      showMessage(uploadMessage, `${files.length}枚中${index + 1}枚目をアップロードしています。`);
-      const path = `${state.user.id}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
+      showMessage(uploadMessage, `${files.length}枚中${index + 1}枚目を圧縮しています。`);
 
       try {
-        const { error: storageError } = await client.storage.from(BUCKET_NAME).upload(path, file, {
+        const compressedFile = await compressImage(file);
+        const path = `${state.user.id}/${crypto.randomUUID()}-${safeFileName(compressedFile.name)}`;
+        showMessage(uploadMessage, `${files.length}枚中${index + 1}枚目をアップロードしています。`);
+        const { error: storageError } = await client.storage.from(BUCKET_NAME).upload(path, compressedFile, {
           cacheControl: '3600',
-          contentType: file.type,
+          contentType: compressedFile.type,
           upsert: false
         });
         if (storageError) throw storageError;
@@ -289,6 +339,29 @@ async function deleteMemory() {
   await loadMemories();
 }
 
+async function deleteSelectedMemories() {
+  const memories = state.memories.filter((memory) => state.selectedIds.has(memory.id) && memory.user_id === state.user.id);
+  if (!memories.length || !confirm(`選択した${memories.length}枚をアルバムから削除しますか？`)) return;
+
+  const button = byId('delete-selected-button');
+  button.disabled = true;
+  galleryStatus.hidden = false;
+  galleryStatus.textContent = `${memories.length}枚を削除しています。`;
+  try {
+    const { error: storageError } = await client.storage.from(BUCKET_NAME).remove(memories.map((memory) => memory.storage_path));
+    if (storageError) throw storageError;
+
+    const { error: databaseError } = await client.from(TABLE_NAME).delete().in('id', memories.map((memory) => memory.id));
+    if (databaseError) throw databaseError;
+    state.selectedIds.clear();
+    await loadMemories();
+  } catch (error) {
+    galleryStatus.textContent = `選択した写真を削除できませんでした: ${error.message}`;
+  } finally {
+    button.disabled = false;
+  }
+}
+
 byId('auth-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   showMessage(authMessage, 'ログインしています。');
@@ -324,6 +397,7 @@ byId('sign-out-button').addEventListener('click', () => client.auth.signOut());
 byId('upload-form').addEventListener('submit', uploadMemory);
 byId('edit-form').addEventListener('submit', updateMemory);
 byId('delete-button').addEventListener('click', deleteMemory);
+byId('delete-selected-button').addEventListener('click', deleteSelectedMemories);
 byId('photo-dialog-close').addEventListener('click', () => byId('photo-dialog').close());
 byId('photo-edit-button').addEventListener('click', () => {
   if (!state.selectedMemory) return;
