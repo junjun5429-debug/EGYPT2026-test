@@ -13,8 +13,17 @@ const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const AUTH_EMAILS_STORAGE_KEY = 'egypt-memories-auth-emails';
 const AUTH_MODES = Object.freeze({ REGISTER: 'register', SIGN_IN: 'signin', SIGN_IN_WITH_EMAIL: 'signin-email', RECOVERY: 'recovery' });
 
+function authCallbackErrorMessage() {
+  const parameters = new URLSearchParams(window.location.hash.slice(1));
+  if (!parameters.get('error')) return '';
+  if (parameters.get('error_code') === 'otp_expired') {
+    return 'パスワード再設定リンクの有効期限が切れているか、すでに使用されています。もう一度再設定メールを送信し、最新のメールに記載されたリンクを開いてください。';
+  }
+  return 'パスワード再設定リンクを使用できません。もう一度再設定メールを送信してください。';
+}
+
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const state = { user: null, memories: [], previewUrls: [], selectedMemory: null, selectedIds: new Set(), renderVersion: 0, selectedNickname: '', memberRegistered: false, authMode: AUTH_MODES.REGISTER, pendingUserId: '' };
+const state = { user: null, memories: [], previewUrls: [], selectedMemory: null, selectedIds: new Set(), renderVersion: 0, selectedNickname: '', memberRegistered: false, authMode: AUTH_MODES.REGISTER, pendingUserId: '', authCallbackError: authCallbackErrorMessage() };
 const byId = (id) => document.getElementById(id);
 
 const authPanel = byId('auth-panel');
@@ -74,7 +83,7 @@ function showNicknameSelection() {
   byId('nickname-login').hidden = false;
   byId('credential-panel').hidden = true;
   byId('credential-form').reset();
-  showMessage(authMessage);
+  showMessage(authMessage, state.authCallbackError, state.authCallbackError ? 'error' : '');
 }
 
 function setAuthMode(mode) {
@@ -112,6 +121,10 @@ function showPasswordRecovery(user) {
 }
 
 async function selectNickname(nickname) {
+  if (state.authCallbackError) {
+    state.authCallbackError = '';
+    history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+  }
   state.selectedNickname = nickname;
   const buttons = byId('nickname-login').querySelectorAll('button');
   buttons.forEach((button) => { button.disabled = true; });
@@ -625,9 +638,12 @@ byId('password-reset-button').addEventListener('click', async () => {
   try {
     const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo: window.location.href.split('?')[0] });
     if (error) throw error;
-    showMessage(authMessage, 'パスワード再設定メールを送信しました。メール内のリンクを開いてください。', 'success');
+    showMessage(authMessage, 'パスワード再設定メールを送信しました。最新のメールに記載されたリンクを開いてください。', 'success');
   } catch (error) {
-    showMessage(authMessage, `再設定メールを送信できませんでした: ${error.message}`, 'error');
+    const message = error.message.toLowerCase().includes('email rate limit exceeded')
+      ? '短時間に複数回送信されました。しばらく待ってから、もう一度お試しください。'
+      : `再設定メールを送信できませんでした: ${error.message}`;
+    showMessage(authMessage, message, 'error');
   } finally {
     button.disabled = false;
   }
@@ -718,6 +734,7 @@ client.auth.onAuthStateChange((event, session) => {
     showPasswordRecovery(session.user);
     return;
   }
+  if (state.authMode === AUTH_MODES.RECOVERY) return;
   if (session?.user && !session.user.is_anonymous) {
     const nickname = session.user.user_metadata?.name?.toLowerCase();
     if (!state.selectedNickname || nickname === state.selectedNickname) setSignedIn(session.user);
@@ -726,6 +743,7 @@ client.auth.onAuthStateChange((event, session) => {
 
 client.auth.getSession().then(({ data }) => {
   if (data.session?.user?.is_anonymous) client.auth.signOut();
-  else if (data.session?.user) setSignedIn(data.session.user);
-  else setSignedOut();
+  else if (data.session?.user) {
+    if (state.authMode !== AUTH_MODES.RECOVERY) setSignedIn(data.session.user);
+  } else if (state.authMode !== AUTH_MODES.RECOVERY) setSignedOut();
 });
