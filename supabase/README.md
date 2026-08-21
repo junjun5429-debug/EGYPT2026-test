@@ -2,22 +2,13 @@
 
 1. Supabase Dashboardで対象プロジェクトを開きます。
 2. SQL Editorで `memories-setup.sql` の全内容を実行します。
-3. Authentication > URL Configurationを開きます。
-4. Redirect URLsへ次を追加します。
+3. Authentication > Providersを開きます。
+4. Allow anonymous sign-insを有効にします。
 
-```text
-https://junjun5429-debug.github.io/EGYPT2026-test/memories.html
-```
+## ニックネーム認証
 
-## メール認証
+ログイン画面では `JUNPEI`、`KAZUKI`、`TAKUYA` のいずれかを選択し、Supabaseの匿名ユーザーとしてサインインします。同じニックネームで保存した写真は、端末ごとに匿名ユーザーIDが異なっても共通の「自分の写真」として扱われます。
 
-Authentication > Providers > Emailを有効にします。現在のプロジェクトでは有効です。
+この方式は本人確認を行いません。同じニックネームを選択した利用者は、そのニックネームで保存された写真を編集・削除できます。
 
-## Google認証
-
-1. Google Cloud ConsoleでOAuth 2.0クライアントを作成します。
-2. Supabase DashboardのAuthentication > Providers > GoogleへClient IDとClient Secretを設定します。
-3. Supabaseが表示するCallback URLをGoogle側の承認済みリダイレクトURIへ追加します。
-4. Googleプロバイダーを有効にします。
-
-`memories` バケットは非公開です。SQLのRLSポリシーにより、ログイン済みユーザーは全員の写真を閲覧できます。写真の追加・編集・削除は、各ユーザーが所有する `memories/{user_id}/` 以下と、自分の `travel_memories` レコードだけに制限されます。未ログインユーザーは閲覧できません。
+`memories` バケットは非公開です。SQLのRLSポリシーにより、ログイン済みユーザーは全員の写真を閲覧できます。写真の追加は匿名ユーザーIDごとの保存先に制限され、編集・削除は同じニックネームの利用者に許可されます。未ログインユーザーは閲覧できません。

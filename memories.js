@@ -43,6 +43,10 @@ function currentUserName() {
   return (state.user.user_metadata?.name || state.user.email || 'メンバー').toUpperCase();
 }
 
+function isMemoryOwner(memory) {
+  return authorDisplay(memory.author_name).toUpperCase() === currentUserName();
+}
+
 function safeFileName(name) {
   const extension = name.split('.').pop().toLowerCase();
   const stem = name.slice(0, -(extension.length + 1)).replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 60) || 'photo';
@@ -207,7 +211,7 @@ async function loadMemories() {
   }
 
   state.memories = data || [];
-  const ownedIds = new Set(state.memories.filter((memory) => memory.user_id === state.user.id).map((memory) => memory.id));
+  const ownedIds = new Set(state.memories.filter(isMemoryOwner).map((memory) => memory.id));
   state.selectedIds.forEach((id) => {
     if (!ownedIds.has(id)) state.selectedIds.delete(id);
   });
@@ -225,7 +229,7 @@ function filteredMemories() {
   const location = byId('filter-location').value.trim().toLocaleLowerCase('ja');
   const showOthers = byId('show-others').checked;
   return state.memories.filter((memory) => {
-    const matchesScope = showOthers || memory.user_id === state.user.id;
+    const matchesScope = showOthers || isMemoryOwner(memory);
     const matchesDate = !date || memory.taken_on === date;
     const matchesLocation = !location || (memory.location || '').toLocaleLowerCase('ja').includes(location);
     return matchesScope && matchesDate && matchesLocation;
@@ -233,7 +237,7 @@ function filteredMemories() {
 }
 
 async function createMemoryCard(memory) {
-  const isOwner = memory.user_id === state.user.id;
+  const isOwner = isMemoryOwner(memory);
   const authorLabel = isOwner ? '自分' : authorDisplay(memory.author_name);
   const locationLabel = memory.location || '場所未設定';
   const article = document.createElement('article');
@@ -306,10 +310,10 @@ async function openPhoto(memory, imageUrl) {
   byId('dialog-location').textContent = memory.location || '場所未設定';
   byId('dialog-date').textContent = formatDate(memory.taken_on) || '撮影日未設定';
   byId('dialog-comment').textContent = memory.comment || '';
-  byId('dialog-author').textContent = memory.user_id === state.user.id
+  byId('dialog-author').textContent = isMemoryOwner(memory)
     ? '自分が保存'
     : `${authorDisplay(memory.author_name)} さんが保存`;
-  byId('photo-edit-button').hidden = memory.user_id !== state.user.id;
+  byId('photo-edit-button').hidden = !isMemoryOwner(memory);
   byId('photo-dialog').showModal();
   try {
     const fullImageUrl = await signedPhotoUrl(memory.storage_path);
@@ -320,7 +324,7 @@ async function openPhoto(memory, imageUrl) {
 }
 
 function openEdit(memory) {
-  if (memory.user_id !== state.user.id) return;
+  if (!isMemoryOwner(memory)) return;
   byId('edit-id').value = memory.id;
   byId('edit-date').value = memory.taken_on || '';
   byId('edit-location').value = memory.location || '';
@@ -434,7 +438,7 @@ async function deleteMemory() {
 }
 
 async function deleteSelectedMemories() {
-  const memories = state.memories.filter((memory) => state.selectedIds.has(memory.id) && memory.user_id === state.user.id);
+  const memories = state.memories.filter((memory) => state.selectedIds.has(memory.id) && isMemoryOwner(memory));
   if (!memories.length || !confirm(`選択した${memories.length}枚をアルバムから削除しますか？`)) return;
 
   const button = byId('delete-selected-button');

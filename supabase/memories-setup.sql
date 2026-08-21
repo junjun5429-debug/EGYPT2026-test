@@ -59,20 +59,33 @@ drop policy if exists "Users can create their own memories" on public.travel_mem
 create policy "Users can create their own memories"
 on public.travel_memories for insert
 to authenticated
-with check ((select auth.uid()) = user_id);
+with check (
+  (select auth.uid()) = user_id
+  and (select auth.jwt() -> 'user_metadata' ->> 'name') is not null
+  and lower(author_name) = lower((select auth.jwt() -> 'user_metadata' ->> 'name'))
+);
 
 drop policy if exists "Users can update their own memories" on public.travel_memories;
 create policy "Users can update their own memories"
 on public.travel_memories for update
 to authenticated
-using ((select auth.uid()) = user_id)
-with check ((select auth.uid()) = user_id);
+using (
+  (select auth.jwt() -> 'user_metadata' ->> 'name') is not null
+  and lower(author_name) = lower((select auth.jwt() -> 'user_metadata' ->> 'name'))
+)
+with check (
+  (select auth.jwt() -> 'user_metadata' ->> 'name') is not null
+  and lower(author_name) = lower((select auth.jwt() -> 'user_metadata' ->> 'name'))
+);
 
 drop policy if exists "Users can delete their own memories" on public.travel_memories;
 create policy "Users can delete their own memories"
 on public.travel_memories for delete
 to authenticated
-using ((select auth.uid()) = user_id);
+using (
+  (select auth.jwt() -> 'user_metadata' ->> 'name') is not null
+  and lower(author_name) = lower((select auth.jwt() -> 'user_metadata' ->> 'name'))
+);
 
 grant select, insert, update, delete on public.travel_memories to authenticated;
 
@@ -105,11 +118,27 @@ on storage.objects for update
 to authenticated
 using (
   bucket_id = 'memories'
-  and (storage.foldername(name))[1] = (select auth.uid()::text)
+  and (
+    (storage.foldername(name))[1] = (select auth.uid()::text)
+    or exists (
+      select 1
+      from public.travel_memories m
+      where lower(m.author_name) = lower((select auth.jwt() -> 'user_metadata' ->> 'name'))
+        and (m.storage_path = name or m.thumbnail_path = name)
+    )
+  )
 )
 with check (
   bucket_id = 'memories'
-  and (storage.foldername(name))[1] = (select auth.uid()::text)
+  and (
+    (storage.foldername(name))[1] = (select auth.uid()::text)
+    or exists (
+      select 1
+      from public.travel_memories m
+      where lower(m.author_name) = lower((select auth.jwt() -> 'user_metadata' ->> 'name'))
+        and (m.storage_path = name or m.thumbnail_path = name)
+    )
+  )
 );
 
 drop policy if exists "Users can delete their own memory photos" on storage.objects;
@@ -118,5 +147,13 @@ on storage.objects for delete
 to authenticated
 using (
   bucket_id = 'memories'
-  and (storage.foldername(name))[1] = (select auth.uid()::text)
+  and (
+    (storage.foldername(name))[1] = (select auth.uid()::text)
+    or exists (
+      select 1
+      from public.travel_memories m
+      where lower(m.author_name) = lower((select auth.jwt() -> 'user_metadata' ->> 'name'))
+        and (m.storage_path = name or m.thumbnail_path = name)
+    )
+  )
 );
