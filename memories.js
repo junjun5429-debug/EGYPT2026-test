@@ -211,6 +211,13 @@ async function loadMemories() {
   }
 
   state.memories = data || [];
+  const locations = [...new Set(state.memories.map((memory) => memory.location?.trim()).filter(Boolean))]
+    .sort((left, right) => left.localeCompare(right, 'ja'));
+  byId('location-suggestions').replaceChildren(...locations.map((location) => {
+    const option = document.createElement('option');
+    option.value = location;
+    return option;
+  }));
   const ownedIds = new Set(state.memories.filter(isMemoryOwner).map((memory) => memory.id));
   state.selectedIds.forEach((id) => {
     if (!ownedIds.has(id)) state.selectedIds.delete(id);
