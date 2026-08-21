@@ -194,6 +194,31 @@ async function setSignedIn(user) {
   await loadMemories();
 }
 
+function updateLocationSuggestionState(containerId, inputId) {
+  const selectedLocation = byId(inputId).value.trim().toLocaleLowerCase('ja');
+  byId(containerId).querySelectorAll('.location-suggestion').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.location.toLocaleLowerCase('ja') === selectedLocation));
+  });
+}
+
+function renderLocationSuggestions(locations, containerId, inputId, onSelect) {
+  byId(containerId).replaceChildren(...locations.map((location) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'location-suggestion';
+    button.textContent = location;
+    button.dataset.location = location;
+    button.setAttribute('aria-pressed', 'false');
+    button.addEventListener('click', () => {
+      byId(inputId).value = location;
+      updateLocationSuggestionState(containerId, inputId);
+      onSelect?.();
+    });
+    return button;
+  }));
+  updateLocationSuggestionState(containerId, inputId);
+}
+
 async function loadMemories() {
   galleryStatus.hidden = false;
   galleryStatus.textContent = '写真を読み込んでいます';
@@ -213,19 +238,8 @@ async function loadMemories() {
   state.memories = data || [];
   const locations = [...new Set(state.memories.map((memory) => memory.location?.trim()).filter(Boolean))]
     .sort((left, right) => left.localeCompare(right, 'ja'));
-  byId('location-suggestions').replaceChildren(...locations.map((location) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'location-suggestion';
-    button.textContent = location;
-    button.dataset.location = location;
-    button.setAttribute('aria-pressed', 'false');
-    button.addEventListener('click', () => {
-      byId('filter-location').value = location;
-      renderMemories();
-    });
-    return button;
-  }));
+  renderLocationSuggestions(locations, 'memory-location-suggestions', 'memory-location');
+  renderLocationSuggestions(locations, 'location-suggestions', 'filter-location', renderMemories);
   const ownedIds = new Set(state.memories.filter(isMemoryOwner).map((memory) => memory.id));
   state.selectedIds.forEach((id) => {
     if (!ownedIds.has(id)) state.selectedIds.delete(id);
@@ -302,10 +316,7 @@ async function createMemoryCard(memory) {
 async function renderMemories() {
   const renderVersion = ++state.renderVersion;
   const memories = filteredMemories();
-  const selectedLocation = byId('filter-location').value.trim().toLocaleLowerCase('ja');
-  document.querySelectorAll('.location-suggestion').forEach((button) => {
-    button.setAttribute('aria-pressed', String(button.dataset.location.toLocaleLowerCase('ja') === selectedLocation));
-  });
+  updateLocationSuggestionState('location-suggestions', 'filter-location');
   memoryGrid.replaceChildren();
   byId('memory-count').textContent = `${memories.length}枚`;
   updateSelectionBar();
@@ -415,6 +426,7 @@ async function uploadMemory(event) {
     }
 
     byId('upload-form').reset();
+  updateLocationSuggestionState('memory-location-suggestions', 'memory-location');
     clearPhotoPreviews();
     if (savedCount) await loadMemories();
     if (failures.length) {
@@ -510,6 +522,9 @@ byId('photo-edit-button').addEventListener('click', () => {
 byId('edit-dialog-close').addEventListener('click', () => byId('edit-dialog').close());
 byId('filter-date').addEventListener('change', renderMemories);
 byId('filter-location').addEventListener('input', renderMemories);
+byId('memory-location').addEventListener('input', () => {
+  updateLocationSuggestionState('memory-location-suggestions', 'memory-location');
+});
 byId('show-others').addEventListener('change', renderMemories);
 byId('clear-filters').addEventListener('click', () => {
   byId('filter-date').value = '';

@@ -70,7 +70,7 @@
   </style>
   <link rel="stylesheet" href="memories.css?v=20260821-4">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" defer></script>
-  <script src="memories.js?v=20260821-7" defer></script>
+  <script src="memories.js?v=20260821-8" defer></script>
 </head>
 <body>
   <header class="album-header">
@@ -123,7 +123,10 @@
           </label>
           <div class="memory-fields">
             <label>撮影日（任意）<input id="memory-date" type="date"></label>
-            <label>場所（任意）<input id="memory-location" type="text" maxlength="80" placeholder="例：ギザの三大ピラミッド"></label>
+            <div class="location-filter">
+              <label>場所（任意）<input id="memory-location" type="text" maxlength="80" placeholder="例：ギザの三大ピラミッド"></label>
+              <div class="location-suggestions" id="memory-location-suggestions" aria-label="保存済みの場所"></div>
+            </div>
             <label class="wide-field">コメント (任意)<textarea id="memory-comment" maxlength="500" rows="4" placeholder="この日の思い出"></textarea></label>
             <button class="primary-button wide-field" id="upload-button" type="submit">アルバムに保存</button>
           </div>
