@@ -147,6 +147,7 @@ dialog::backdrop { background: var(--cp-overlay); }
   .album-intro { padding: 40px 0 48px; }
   .album-main { padding-top: 32px; }
   .auth-panel { padding: 24px 20px; }
+  input, textarea { font-size: 16px; }
   .upload-form { grid-template-columns: 1fr; }
   .photo-picker { min-height: 150px; }
   .filters { grid-template-columns: 1fr; }
