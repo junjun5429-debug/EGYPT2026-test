@@ -617,6 +617,10 @@ byId('credential-form').addEventListener('submit', async (event) => {
         }
       });
       if (error) throw error;
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        showMessage(authMessage, 'このメール アドレスは別の認証で登録済みです。初回登録には別のメール アドレスを使用してください。', 'error');
+        return;
+      }
       rememberAuthEmail(nickname, email);
       if (!data.session) {
         showMessage(authMessage, '確認メールを送信しました。メール内のリンクを開いて登録を完了してください。', 'success');
