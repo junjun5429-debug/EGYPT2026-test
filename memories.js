@@ -214,9 +214,17 @@ async function loadMemories() {
   const locations = [...new Set(state.memories.map((memory) => memory.location?.trim()).filter(Boolean))]
     .sort((left, right) => left.localeCompare(right, 'ja'));
   byId('location-suggestions').replaceChildren(...locations.map((location) => {
-    const option = document.createElement('option');
-    option.value = location;
-    return option;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'location-suggestion';
+    button.textContent = location;
+    button.dataset.location = location;
+    button.setAttribute('aria-pressed', 'false');
+    button.addEventListener('click', () => {
+      byId('filter-location').value = location;
+      renderMemories();
+    });
+    return button;
   }));
   const ownedIds = new Set(state.memories.filter(isMemoryOwner).map((memory) => memory.id));
   state.selectedIds.forEach((id) => {
@@ -294,6 +302,10 @@ async function createMemoryCard(memory) {
 async function renderMemories() {
   const renderVersion = ++state.renderVersion;
   const memories = filteredMemories();
+  const selectedLocation = byId('filter-location').value.trim().toLocaleLowerCase('ja');
+  document.querySelectorAll('.location-suggestion').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.location.toLocaleLowerCase('ja') === selectedLocation));
+  });
   memoryGrid.replaceChildren();
   byId('memory-count').textContent = `${memories.length}枚`;
   updateSelectionBar();
