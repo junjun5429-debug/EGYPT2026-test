@@ -40,7 +40,7 @@ function authorDisplay(name) {
 }
 
 function currentUserName() {
-  return state.user.user_metadata?.name || state.user.email || 'メンバー';
+  return (state.user.user_metadata?.name || state.user.email || 'メンバー').toUpperCase();
 }
 
 function safeFileName(name) {
@@ -174,6 +174,9 @@ function setSignedOut() {
   state.user = null;
   state.memories = [];
   state.selectedIds.clear();
+  byId('nickname-login').querySelectorAll('button').forEach((button) => {
+    button.disabled = false;
+  });
   authPanel.hidden = false;
   albumWorkspace.hidden = true;
   memoryGrid.replaceChildren();
@@ -183,7 +186,7 @@ async function setSignedIn(user) {
   state.user = user;
   authPanel.hidden = true;
   albumWorkspace.hidden = false;
-  byId('account-email').textContent = user.email || 'Googleアカウント';
+  byId('account-email').textContent = currentUserName();
   await loadMemories();
 }
 
@@ -454,35 +457,20 @@ async function deleteSelectedMemories() {
   }
 }
 
-byId('auth-form').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  showMessage(authMessage, 'ログインしています。');
-  const { error } = await client.auth.signInWithPassword({
-    email: byId('auth-email').value,
-    password: byId('auth-password').value
-  });
-  if (error) showMessage(authMessage, `ログインできませんでした: ${error.message}`, 'error');
-});
+byId('nickname-login').addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-nickname]');
+  if (!button) return;
 
-byId('sign-up-button').addEventListener('click', async () => {
-  if (!byId('auth-form').reportValidity()) return;
-  showMessage(authMessage, 'アカウントを作成しています。');
-  const { data, error } = await client.auth.signUp({
-    email: byId('auth-email').value,
-    password: byId('auth-password').value,
-    options: { emailRedirectTo: new URL('memories.html', location.href).href }
+  const nickname = button.dataset.nickname;
+  const buttons = byId('nickname-login').querySelectorAll('button');
+  buttons.forEach((item) => { item.disabled = true; });
+  const { error } = await client.auth.signInAnonymously({
+    options: { data: { name: nickname } }
   });
-  if (error) return showMessage(authMessage, `登録できませんでした: ${error.message}`, 'error');
-  showMessage(authMessage, data.session ? '登録してログインしました。' : '確認メールを送信しました。メール内のリンクを開いてください。', 'success');
-});
-
-byId('google-button').addEventListener('click', async () => {
-  showMessage(authMessage, 'Googleのログイン画面を開いています。');
-  const { error } = await client.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: new URL('memories.html', location.href).href }
-  });
-  if (error) showMessage(authMessage, `Googleログインを開始できませんでした: ${error.message}`, 'error');
+  if (error) {
+    showMessage(authMessage, `ログインできませんでした: ${error.message}`, 'error');
+    buttons.forEach((item) => { item.disabled = false; });
+  }
 });
 
 byId('sign-out-button').addEventListener('click', () => client.auth.signOut());

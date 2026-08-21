@@ -68,9 +68,9 @@
       --cp-highlight: rgba(253, 142, 161, 0.12);
     }
   </style>
-  <link rel="stylesheet" href="memories.css?v=20260820-1">
+  <link rel="stylesheet" href="memories.css?v=20260821-3">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" defer></script>
-  <script src="memories.js?v=20260820-5" defer></script>
+  <script src="memories.js?v=20260821-4" defer></script>
 </head>
 <body>
   <header class="album-header">
@@ -92,24 +92,20 @@
         <p class="eyebrow">MEMBER SIGN IN</p>
         <h2 id="auth-title">アルバムをひらく</h2>
       </div>
-      <form class="auth-form" id="auth-form">
-        <label>メールアドレス<input id="auth-email" type="email" autocomplete="email" required></label>
-        <label>パスワード<input id="auth-password" type="password" autocomplete="current-password" minlength="6" required></label>
-        <div class="button-row">
-          <button class="primary-button" type="submit">ログイン</button>
-          <button class="secondary-button" type="button" id="sign-up-button">新規登録</button>
-        </div>
-      </form>
-      <div class="auth-divider"><span>または</span></div>
-      <button class="google-button" type="button" id="google-button">
-        <span aria-hidden="true">G</span> Googleで続ける
-      </button>
+      <div class="nickname-login" id="nickname-login" role="group" aria-label="ログインするニックネーム">
+        <button class="nickname-button" type="button" data-nickname="junpei">JUNPEI</button>
+        <button class="nickname-button" type="button" data-nickname="kazuki">KAZUKI</button>
+        <button class="nickname-button" type="button" data-nickname="takuya">TAKUYA</button>
+      </div>
       <p class="status-message" id="auth-message" aria-live="polite"></p>
     </section>
 
     <section class="album-workspace" id="album-workspace" hidden>
       <div class="account-bar">
-        <div><span>ログイン中</span><strong id="account-email"></strong></div>
+        <div class="account-identity">
+          <span class="online-indicator" aria-hidden="true"></span>
+          <div class="account-copy"><span>ログイン中のユーザー</span><strong id="account-email"></strong></div>
+        </div>
         <button class="text-button" type="button" id="sign-out-button">ログアウト</button>
       </div>
 
@@ -128,7 +124,7 @@
           <div class="memory-fields">
             <label>撮影日（任意）<input id="memory-date" type="date"></label>
             <label>場所（任意）<input id="memory-location" type="text" maxlength="80" placeholder="例：ギザの三大ピラミッド"></label>
-            <label class="wide-field">コメント<textarea id="memory-comment" maxlength="500" rows="4" placeholder="この日の思い出"></textarea></label>
+            <label class="wide-field">コメント (任意)<textarea id="memory-comment" maxlength="500" rows="4" placeholder="この日の思い出"></textarea></label>
             <button class="primary-button wide-field" id="upload-button" type="submit">アルバムに保存</button>
           </div>
         </form>
@@ -177,7 +173,7 @@
       <input id="edit-id" type="hidden">
       <label>撮影日（任意）<input id="edit-date" type="date"></label>
       <label>場所（任意）<input id="edit-location" type="text" maxlength="80"></label>
-      <label>コメント<textarea id="edit-comment" maxlength="500" rows="5"></textarea></label>
+      <label>コメント (任意)<textarea id="edit-comment" maxlength="500" rows="5"></textarea></label>
       <div class="button-row"><button class="primary-button" type="submit">変更を保存</button><button class="danger-button" type="button" id="delete-button">写真を削除</button></div>
       <p class="status-message" id="edit-message" aria-live="polite"></p>
     </form>
