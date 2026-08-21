@@ -57,6 +57,10 @@ input:focus, textarea:focus { outline: 2px solid var(--cp-accent); outline-offse
 .credential-panel h3 { margin: 2px 0 18px; color: var(--cp-text); font-size: 1.35rem; }
 .credential-form { display: grid; gap: 16px; }
 .credential-form .primary-button { width: 100%; }
+.password-input { position: relative; display: block; }
+.password-input input { padding-right: 64px; }
+.password-visibility-button { position: absolute; top: 50%; right: 6px; min-width: 48px; min-height: 32px; transform: translateY(-50%); border: 0; border-radius: 4px; background: var(--cp-surface-soft); color: var(--cp-link); padding: 4px 8px; font-size: .78rem; font-weight: 800; }
+.password-visibility-button:hover, .password-visibility-button:focus-visible { outline: 2px solid var(--cp-link); outline-offset: 1px; }
 .auth-mode-button { display: block; margin: 14px auto 0; }
 .button-row { display: flex; gap: 10px; flex-wrap: wrap; }
 .primary-button, .secondary-button, .google-button, .danger-button, .text-button {

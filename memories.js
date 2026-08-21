@@ -76,6 +76,13 @@ function selectedAuthEmail() {
   return storedAuthEmails()[state.selectedNickname] || '';
 }
 
+function setPasswordVisibility(visible) {
+  byId('auth-password').type = visible ? 'text' : 'password';
+  byId('auth-password-confirm').type = visible ? 'text' : 'password';
+  byId('password-visibility-button').textContent = visible ? '隠す' : '表示';
+  byId('password-visibility-button').setAttribute('aria-pressed', String(visible));
+}
+
 function showNicknameSelection() {
   state.selectedNickname = '';
   state.memberRegistered = false;
@@ -92,10 +99,15 @@ function setAuthMode(mode) {
   const passwordOnly = mode === AUTH_MODES.SIGN_IN && Boolean(savedEmail);
   const isRegistration = mode === AUTH_MODES.REGISTER;
   const isRecovery = mode === AUTH_MODES.RECOVERY;
+  const requiresPasswordConfirmation = isRegistration || isRecovery;
   byId('auth-email-field').hidden = passwordOnly || isRecovery;
   byId('auth-email').required = !passwordOnly && !isRecovery;
   byId('auth-email').value = passwordOnly ? savedEmail : '';
   byId('auth-password').value = '';
+  byId('auth-password-confirm-field').hidden = !requiresPasswordConfirmation;
+  byId('auth-password-confirm').required = requiresPasswordConfirmation;
+  byId('auth-password-confirm').value = '';
+  setPasswordVisibility(false);
   byId('auth-password').autocomplete = isRegistration || isRecovery ? 'new-password' : 'current-password';
   byId('auth-password-label').textContent = isRecovery ? '新しいパスワード' : 'パスワード';
   byId('credential-title').textContent = isRecovery ? 'パスワード再設定' : isRegistration ? '初回登録' : 'パスワード認証';
@@ -616,6 +628,9 @@ byId('nickname-login').addEventListener('click', async (event) => {
 });
 
 byId('auth-back-button').addEventListener('click', showNicknameSelection);
+byId('password-visibility-button').addEventListener('click', () => {
+  setPasswordVisibility(byId('auth-password').type === 'password');
+});
 byId('auth-mode-button').addEventListener('click', () => {
   if (state.authMode === AUTH_MODES.REGISTER || state.authMode === AUTH_MODES.SIGN_IN) {
     setAuthMode(AUTH_MODES.SIGN_IN_WITH_EMAIL);
@@ -653,6 +668,12 @@ byId('credential-form').addEventListener('submit', async (event) => {
   const nickname = state.selectedNickname;
   const email = (state.authMode === AUTH_MODES.SIGN_IN ? selectedAuthEmail() : byId('auth-email').value).trim().toLowerCase();
   const password = byId('auth-password').value;
+  const requiresPasswordConfirmation = state.authMode === AUTH_MODES.REGISTER || state.authMode === AUTH_MODES.RECOVERY;
+  if (requiresPasswordConfirmation && password !== byId('auth-password-confirm').value) {
+    showMessage(authMessage, 'パスワードが一致しません。もう一度入力してください。', 'error');
+    byId('auth-password-confirm').focus();
+    return;
+  }
   const submitButton = byId('auth-submit-button');
   submitButton.disabled = true;
   showMessage(authMessage);
