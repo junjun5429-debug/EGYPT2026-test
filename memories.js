@@ -10,9 +10,11 @@ const THUMBNAIL_DIMENSION = 480;
 const MIN_IMAGE_QUALITY = 0.4;
 const MAX_IMAGE_QUALITY = 0.86;
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const AUTH_EMAILS_STORAGE_KEY = 'egypt-memories-auth-emails';
+const AUTH_MODES = Object.freeze({ REGISTER: 'register', SIGN_IN: 'signin', SIGN_IN_WITH_EMAIL: 'signin-email' });
 
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const state = { user: null, memories: [], previewUrls: [], selectedMemory: null, selectedIds: new Set(), renderVersion: 0 };
+const state = { user: null, memories: [], previewUrls: [], selectedMemory: null, selectedIds: new Set(), renderVersion: 0, selectedNickname: '', memberRegistered: false, authMode: AUTH_MODES.REGISTER, pendingUserId: '' };
 const byId = (id) => document.getElementById(id);
 
 const authPanel = byId('auth-panel');
@@ -45,6 +47,81 @@ function currentUserName() {
 
 function isMemoryOwner(memory) {
   return authorDisplay(memory.author_name).toUpperCase() === currentUserName();
+}
+
+function storedAuthEmails() {
+  try {
+    return JSON.parse(localStorage.getItem(AUTH_EMAILS_STORAGE_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function rememberAuthEmail(nickname, email) {
+  const emails = storedAuthEmails();
+  emails[nickname] = email.trim().toLowerCase();
+  localStorage.setItem(AUTH_EMAILS_STORAGE_KEY, JSON.stringify(emails));
+}
+
+function selectedAuthEmail() {
+  return storedAuthEmails()[state.selectedNickname] || '';
+}
+
+function showNicknameSelection() {
+  state.selectedNickname = '';
+  state.memberRegistered = false;
+  byId('nickname-login').hidden = false;
+  byId('credential-panel').hidden = true;
+  byId('credential-form').reset();
+  showMessage(authMessage);
+}
+
+function setAuthMode(mode) {
+  state.authMode = mode;
+  const savedEmail = selectedAuthEmail();
+  const passwordOnly = mode === AUTH_MODES.SIGN_IN && Boolean(savedEmail);
+  const isRegistration = mode === AUTH_MODES.REGISTER;
+  byId('auth-email-field').hidden = passwordOnly;
+  byId('auth-email').required = !passwordOnly;
+  byId('auth-email').value = passwordOnly ? savedEmail : '';
+  byId('auth-password').value = '';
+  byId('auth-password').autocomplete = isRegistration ? 'new-password' : 'current-password';
+  byId('credential-title').textContent = isRegistration ? '初回登録' : 'パスワード認証';
+  byId('auth-submit-button').textContent = isRegistration ? '登録してログイン' : 'ログイン';
+  byId('auth-mode-button').textContent = isRegistration
+    ? 'すでに登録済みの方'
+    : passwordOnly
+      ? 'メール アドレスを入力してログイン'
+      : state.memberRegistered ? '保存したメール アドレスでログイン' : '初回登録へ戻る';
+  byId('auth-mode-button').hidden = mode === AUTH_MODES.SIGN_IN_WITH_EMAIL && state.memberRegistered && !savedEmail;
+  showMessage(authMessage);
+}
+
+async function selectNickname(nickname) {
+  state.selectedNickname = nickname;
+  const buttons = byId('nickname-login').querySelectorAll('button');
+  buttons.forEach((button) => { button.disabled = true; });
+  showMessage(authMessage, '登録情報を確認しています。');
+
+  try {
+    const { data: registered, error } = await client.rpc('is_travel_member_registered', { member_nickname: nickname });
+    if (error) throw error;
+    state.memberRegistered = registered;
+    byId('nickname-login').hidden = true;
+    byId('credential-panel').hidden = false;
+    byId('selected-nickname').textContent = nickname.toUpperCase();
+    const mode = selectedAuthEmail()
+      ? AUTH_MODES.SIGN_IN
+      : registered ? AUTH_MODES.SIGN_IN_WITH_EMAIL : AUTH_MODES.REGISTER;
+    setAuthMode(mode);
+    (byId('auth-email-field').hidden ? byId('auth-password') : byId('auth-email')).focus();
+  } catch (error) {
+    state.selectedNickname = '';
+    state.memberRegistered = false;
+    showMessage(authMessage, `登録情報を確認できませんでした: ${error.message}`, 'error');
+  } finally {
+    buttons.forEach((button) => { button.disabled = false; });
+  }
 }
 
 function safeFileName(name) {
@@ -184,14 +261,27 @@ function setSignedOut() {
   authPanel.hidden = false;
   albumWorkspace.hidden = true;
   memoryGrid.replaceChildren();
+  showNicknameSelection();
 }
 
 async function setSignedIn(user) {
-  state.user = user;
-  authPanel.hidden = true;
-  albumWorkspace.hidden = false;
-  byId('account-email').textContent = currentUserName();
-  await loadMemories();
+  if (state.user?.id === user.id || state.pendingUserId === user.id) return;
+  state.pendingUserId = user.id;
+  try {
+    const { data: claimed, error } = await client.rpc('claim_travel_member');
+    if (error || !claimed) {
+      await client.auth.signOut();
+      showMessage(authMessage, 'このユーザーは別のアカウントで登録済みです。', 'error');
+      return;
+    }
+    state.user = user;
+    authPanel.hidden = true;
+    albumWorkspace.hidden = false;
+    byId('account-email').textContent = currentUserName();
+    await loadMemories();
+  } finally {
+    state.pendingUserId = '';
+  }
 }
 
 function updateLocationSuggestionState(containerId, inputId) {
@@ -495,16 +585,56 @@ async function deleteSelectedMemories() {
 byId('nickname-login').addEventListener('click', async (event) => {
   const button = event.target.closest('[data-nickname]');
   if (!button) return;
+  await selectNickname(button.dataset.nickname);
+});
 
-  const nickname = button.dataset.nickname;
-  const buttons = byId('nickname-login').querySelectorAll('button');
-  buttons.forEach((item) => { item.disabled = true; });
-  const { error } = await client.auth.signInAnonymously({
-    options: { data: { name: nickname } }
-  });
-  if (error) {
-    showMessage(authMessage, `ログインできませんでした: ${error.message}`, 'error');
-    buttons.forEach((item) => { item.disabled = false; });
+byId('auth-back-button').addEventListener('click', showNicknameSelection);
+byId('auth-mode-button').addEventListener('click', () => {
+  if (state.authMode === AUTH_MODES.REGISTER || state.authMode === AUTH_MODES.SIGN_IN) {
+    setAuthMode(AUTH_MODES.SIGN_IN_WITH_EMAIL);
+  } else {
+    setAuthMode(state.memberRegistered ? AUTH_MODES.SIGN_IN : AUTH_MODES.REGISTER);
+  }
+  (byId('auth-email-field').hidden ? byId('auth-password') : byId('auth-email')).focus();
+});
+byId('credential-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const nickname = state.selectedNickname;
+  const email = (state.authMode === AUTH_MODES.SIGN_IN ? selectedAuthEmail() : byId('auth-email').value).trim().toLowerCase();
+  const password = byId('auth-password').value;
+  const submitButton = byId('auth-submit-button');
+  submitButton.disabled = true;
+  showMessage(authMessage);
+
+  try {
+    if (state.authMode === AUTH_MODES.REGISTER) {
+      const { data, error } = await client.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name: nickname },
+          emailRedirectTo: window.location.href.split('?')[0]
+        }
+      });
+      if (error) throw error;
+      rememberAuthEmail(nickname, email);
+      if (!data.session) {
+        showMessage(authMessage, '確認メールを送信しました。メール内のリンクを開いて登録を完了してください。', 'success');
+      }
+      return;
+    }
+
+    const { data, error } = await client.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    if (data.user.user_metadata?.name?.toLowerCase() !== nickname) {
+      await client.auth.signOut();
+      throw new Error('選択したユーザーとメール アドレスが一致しません。');
+    }
+    rememberAuthEmail(nickname, email);
+  } catch (error) {
+    showMessage(authMessage, `認証できませんでした: ${error.message}`, 'error');
+  } finally {
+    submitButton.disabled = false;
   }
 });
 
@@ -537,11 +667,14 @@ byId('photo-file').addEventListener('change', (event) => {
 });
 
 client.auth.onAuthStateChange((_event, session) => {
-  if (session?.user) setSignedIn(session.user);
-  else setSignedOut();
+  if (session?.user && !session.user.is_anonymous) {
+    const nickname = session.user.user_metadata?.name?.toLowerCase();
+    if (!state.selectedNickname || nickname === state.selectedNickname) setSignedIn(session.user);
+  } else if (!session?.user) setSignedOut();
 });
 
 client.auth.getSession().then(({ data }) => {
-  if (data.session?.user) setSignedIn(data.session.user);
+  if (data.session?.user?.is_anonymous) client.auth.signOut();
+  else if (data.session?.user) setSignedIn(data.session.user);
   else setSignedOut();
 });

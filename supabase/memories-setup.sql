@@ -29,6 +29,75 @@ where t.user_id = u.id
 create index if not exists travel_memories_user_taken_on_idx
   on public.travel_memories (user_id, taken_on desc);
 
+create table if not exists public.travel_members (
+  nickname text primary key check (lower(nickname) in ('junpei', 'kazuki', 'takuya')),
+  user_id uuid not null unique references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+alter table public.travel_members enable row level security;
+revoke all on public.travel_members from anon, authenticated;
+
+create or replace function public.is_travel_member_registered(member_nickname text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select case
+    when lower(member_nickname) in ('junpei', 'kazuki', 'takuya') then exists (
+      select 1 from public.travel_members where nickname = lower(member_nickname)
+    )
+    else false
+  end;
+$$;
+
+create or replace function public.claim_travel_member()
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  member_nickname text := lower(auth.jwt() -> 'user_metadata' ->> 'name');
+begin
+  if auth.uid() is null or member_nickname not in ('junpei', 'kazuki', 'takuya') then
+    return false;
+  end if;
+
+  insert into public.travel_members (nickname, user_id)
+  values (member_nickname, auth.uid())
+  on conflict (nickname) do nothing;
+
+  return exists (
+    select 1
+    from public.travel_members
+    where nickname = member_nickname and user_id = auth.uid()
+  );
+end;
+$$;
+
+revoke all on function public.is_travel_member_registered(text) from public;
+revoke all on function public.claim_travel_member() from public;
+grant execute on function public.is_travel_member_registered(text) to anon, authenticated;
+grant execute on function public.claim_travel_member() to authenticated;
+
+create or replace function public.current_travel_member_nickname()
+returns text
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select nickname
+  from public.travel_members
+  where user_id = auth.uid();
+$$;
+
+revoke all on function public.current_travel_member_nickname() from public;
+grant execute on function public.current_travel_member_nickname() to authenticated;
+
 create or replace function public.set_travel_memories_updated_at()
 returns trigger
 language plpgsql
@@ -53,7 +122,7 @@ drop policy if exists "Authenticated users can view memories" on public.travel_m
 create policy "Authenticated users can view memories"
 on public.travel_memories for select
 to authenticated
-using (true);
+using ((select public.current_travel_member_nickname()) is not null);
 
 drop policy if exists "Users can create their own memories" on public.travel_memories;
 create policy "Users can create their own memories"
@@ -61,8 +130,7 @@ on public.travel_memories for insert
 to authenticated
 with check (
   (select auth.uid()) = user_id
-  and (select auth.jwt() -> 'user_metadata' ->> 'name') is not null
-  and lower(author_name) = lower((select auth.jwt() -> 'user_metadata' ->> 'name'))
+  and lower(author_name) = (select public.current_travel_member_nickname())
 );
 
 drop policy if exists "Users can update their own memories" on public.travel_memories;
@@ -70,12 +138,10 @@ create policy "Users can update their own memories"
 on public.travel_memories for update
 to authenticated
 using (
-  (select auth.jwt() -> 'user_metadata' ->> 'name') is not null
-  and lower(author_name) = lower((select auth.jwt() -> 'user_metadata' ->> 'name'))
+  lower(author_name) = (select public.current_travel_member_nickname())
 )
 with check (
-  (select auth.jwt() -> 'user_metadata' ->> 'name') is not null
-  and lower(author_name) = lower((select auth.jwt() -> 'user_metadata' ->> 'name'))
+  lower(author_name) = (select public.current_travel_member_nickname())
 );
 
 drop policy if exists "Users can delete their own memories" on public.travel_memories;
@@ -83,8 +149,7 @@ create policy "Users can delete their own memories"
 on public.travel_memories for delete
 to authenticated
 using (
-  (select auth.jwt() -> 'user_metadata' ->> 'name') is not null
-  and lower(author_name) = lower((select auth.jwt() -> 'user_metadata' ->> 'name'))
+  lower(author_name) = (select public.current_travel_member_nickname())
 );
 
 grant select, insert, update, delete on public.travel_memories to authenticated;
@@ -101,7 +166,10 @@ drop policy if exists "Authenticated users can view memory photos" on storage.ob
 create policy "Authenticated users can view memory photos"
 on storage.objects for select
 to authenticated
-using (bucket_id = 'memories');
+using (
+  bucket_id = 'memories'
+  and (select public.current_travel_member_nickname()) is not null
+);
 
 drop policy if exists "Users can upload their own memory photos" on storage.objects;
 create policy "Users can upload their own memory photos"
@@ -109,6 +177,7 @@ on storage.objects for insert
 to authenticated
 with check (
   bucket_id = 'memories'
+  and (select public.current_travel_member_nickname()) is not null
   and (storage.foldername(name))[1] = (select auth.uid()::text)
 );
 
@@ -118,24 +187,26 @@ on storage.objects for update
 to authenticated
 using (
   bucket_id = 'memories'
+  and (select public.current_travel_member_nickname()) is not null
   and (
     (storage.foldername(name))[1] = (select auth.uid()::text)
     or exists (
       select 1
       from public.travel_memories m
-      where lower(m.author_name) = lower((select auth.jwt() -> 'user_metadata' ->> 'name'))
+      where lower(m.author_name) = (select public.current_travel_member_nickname())
         and (m.storage_path = name or m.thumbnail_path = name)
     )
   )
 )
 with check (
   bucket_id = 'memories'
+  and (select public.current_travel_member_nickname()) is not null
   and (
     (storage.foldername(name))[1] = (select auth.uid()::text)
     or exists (
       select 1
       from public.travel_memories m
-      where lower(m.author_name) = lower((select auth.jwt() -> 'user_metadata' ->> 'name'))
+      where lower(m.author_name) = (select public.current_travel_member_nickname())
         and (m.storage_path = name or m.thumbnail_path = name)
     )
   )
@@ -147,12 +218,13 @@ on storage.objects for delete
 to authenticated
 using (
   bucket_id = 'memories'
+  and (select public.current_travel_member_nickname()) is not null
   and (
     (storage.foldername(name))[1] = (select auth.uid()::text)
     or exists (
       select 1
       from public.travel_memories m
-      where lower(m.author_name) = lower((select auth.jwt() -> 'user_metadata' ->> 'name'))
+      where lower(m.author_name) = (select public.current_travel_member_nickname())
         and (m.storage_path = name or m.thumbnail_path = name)
     )
   )

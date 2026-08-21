@@ -68,9 +68,9 @@
       --cp-highlight: rgba(253, 142, 161, 0.12);
     }
   </style>
-  <link rel="stylesheet" href="memories.css?v=20260821-5">
+  <link rel="stylesheet" href="memories.css?v=20260821-6">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" defer></script>
-  <script src="memories.js?v=20260821-8" defer></script>
+  <script src="memories.js?v=20260821-9" defer></script>
 </head>
 <body>
   <header class="album-header">
@@ -96,6 +96,17 @@
         <button class="nickname-button" type="button" data-nickname="junpei">JUNPEI</button>
         <button class="nickname-button" type="button" data-nickname="kazuki">KAZUKI</button>
         <button class="nickname-button" type="button" data-nickname="takuya">TAKUYA</button>
+      </div>
+      <div class="credential-panel" id="credential-panel" hidden>
+        <button class="text-button auth-back" type="button" id="auth-back-button">← ユーザーを選び直す</button>
+        <p class="selected-nickname" id="selected-nickname"></p>
+        <h3 id="credential-title"></h3>
+        <form class="credential-form" id="credential-form">
+          <label id="auth-email-field">メール アドレス<input id="auth-email" type="email" inputmode="email" autocomplete="email" required></label>
+          <label>パスワード<input id="auth-password" type="password" minlength="8" autocomplete="current-password" required></label>
+          <button class="primary-button" id="auth-submit-button" type="submit"></button>
+        </form>
+        <button class="text-button auth-mode-button" type="button" id="auth-mode-button"></button>
       </div>
       <p class="status-message" id="auth-message" aria-live="polite"></p>
     </section>
